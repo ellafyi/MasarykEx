@@ -23,7 +23,9 @@ defmodule MasarykEx.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:nostrum, "~> 0.10"},
+      # Not auto-started: the app starts nostrum itself only when Discord is
+      # enabled, so the CLI and tests run without a bot token.
+      {:nostrum, "~> 0.10", runtime: false},
       {:ecto_sql, "~> 3.12"},
       {:postgrex, "~> 0.19"}
     ]

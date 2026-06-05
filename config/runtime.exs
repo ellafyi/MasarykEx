@@ -26,16 +26,13 @@ if config_env() != :test do
   config :masaryk_ex, MasarykEx.Repo, pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
 end
 
-# Discord. A token is only required when the gateway consumer starts; the CLI
-# runs with discord_enabled: false, so terminal usage needs no token.
-discord_enabled = System.get_env("DISCORD_ENABLED", "true") != "false"
+# Discord is enabled only when a token is present and not explicitly disabled,
+# so the CLI and tests run fine without one.
+bot_token = System.get_env("BOT_TOKEN")
+discord_enabled = System.get_env("DISCORD_ENABLED", "true") != "false" and bot_token not in [nil, ""]
 config :masaryk_ex, discord_enabled: discord_enabled
 
 if discord_enabled do
-  bot_token =
-    System.get_env("BOT_TOKEN") ||
-      raise "Environment variable BOT_TOKEN is missing. Set it in your .env file or shell."
-
   config :nostrum,
     token: bot_token,
     gateway_intents: [:direct_messages, :guild_messages, :message_content]

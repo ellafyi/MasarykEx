@@ -1,40 +1,31 @@
 defmodule MasarykEx.Commands.RestaurantMenus do
   @moduledoc "List available restaurant menus."
 
-  use MasarykEx.Command
+  use MasarykEx.Core.Command
+
+  alias MasarykEx.Config
+  alias MasarykEx.Core.{Request, Response}
 
   @impl true
   def definition do
-    %{
-      name: "restaurant-menus",
-      description: "List available restaurant menus"
-    }
+    %{name: "restaurant-menus", description: "List available restaurant menus", args: []}
   end
 
   @impl true
-  def handle(_interaction) do
-    menus = fetch_menus()
-
-    %{
-      type: 4,
-      data: %{
-        content: format_menus(menus)
-      }
-    }
+  def config_schema do
+    %{enabled: true, restaurants: ["Padagali", "U Drevaka"]}
   end
 
-  # --- Domain logic, separated from Discord plumbing ---
-
-  defp fetch_menus do
-    # Replace with real data source (DB, API, etc.)
-    ["Café Mírná", "Bistro Pod Lípou", "Pizzeria Verona"]
+  @impl true
+  def run(%Request{context: context}) do
+    Config.get(__MODULE__, :restaurants, context)
+    |> format_menus()
+    |> Response.text()
   end
 
   defp format_menus([]), do: "No menus available right now."
 
   defp format_menus(menus) do
-    header = "Today's options:"
-    items = Enum.map_join(menus, "\n", &"- #{&1}")
-    "#{header}\n#{items}"
+    "Today's options:\n" <> Enum.map_join(menus, "\n", &"- #{&1}")
   end
 end

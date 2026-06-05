@@ -31,11 +31,7 @@ defmodule MasarykEx.Core.Command do
   """
   @spec to_module(String.t()) :: module()
   def to_module(name) when is_binary(name) do
-    segments =
-      name
-      |> String.split("-")
-      |> Enum.map(&String.capitalize/1)
-
-    Module.concat([MasarykEx.Commands | segments])
+    module_name = name |> String.split("-") |> Enum.map_join(&String.capitalize/1)
+    Module.concat([MasarykEx.Commands, module_name])
   end
 end

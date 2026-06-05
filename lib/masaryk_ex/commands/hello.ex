@@ -1,23 +1,17 @@
 defmodule MasarykEx.Commands.Hello do
-  @moduledoc "Simple hello slash command."
+  @moduledoc "Say hello."
 
-  use MasarykEx.Command
+  use MasarykEx.Core.Command
+
+  alias MasarykEx.Core.Response
 
   @impl true
   def definition do
-    %{
-      name: "hello",
-      description: "Say hello with a slash command"
-    }
+    %{name: "hello", description: "Say hello", args: []}
   end
 
   @impl true
-  def handle(_interaction) do
-    %{
-      type: 4,
-      data: %{
-        content: "Hello from the other side"
-      }
-    }
+  def run(_request) do
+    Response.text("Hello from the other side")
   end
 end

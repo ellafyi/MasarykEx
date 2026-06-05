@@ -1,45 +1,47 @@
 defmodule MasarykEx.Services.BookmarkListener do
   @moduledoc """
-  Example active service that runs as its own supervised GenServer.
-  It tracks bookmark reactions and could DM users or store data.
-
-  Because this module exports `child_spec/1` (via `use GenServer`),
-  the Application supervisor will automatically start it at boot.
+  Active service that persists a bookmark whenever a 🔖 reaction is added.
+  Supervised as a GenServer (exports child_spec/1 via `use GenServer`).
   """
 
   use GenServer
-  @behaviour MasarykEx.Service
+  use MasarykEx.Core.Service
+
+  alias MasarykEx.Bookmarks
+  alias MasarykEx.Core.Event
 
   require Logger
 
-  # --- GenServer client ---
+  @emoji "🔖"
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  # --- Service event hook (called by the Consumer) ---
-
-  @impl MasarykEx.Service
-  def handle_event(:MESSAGE_REACTION_ADD, %{emoji: %{name: "🔖"}} = reaction, _ws) do
-    GenServer.cast(__MODULE__, {:bookmark, reaction.message_id, reaction.user_id})
+  @impl MasarykEx.Core.Service
+  def handle_event(%Event{type: :reaction_added, data: %{emoji_name: @emoji} = data} = event, _config) do
+    GenServer.cast(__MODULE__, {:bookmark, data, event.context})
     :ok
   end
 
-  def handle_event(_type, _payload, _ws), do: :ok
-
-  # --- GenServer server ---
+  def handle_event(_event, _config), do: :ok
 
   @impl GenServer
   def init(_opts) do
     Logger.info("BookmarkListener started")
-    {:ok, %{bookmarked: MapSet.new()}}
+    {:ok, %{}}
   end
 
   @impl GenServer
-  def handle_cast({:bookmark, _msg_id, user_id}, state) do
-    # TODO: DM the user, store in DB, etc.
-    Logger.info("BookmarkListener: user #{user_id} bookmarked a message")
+  def handle_cast({:bookmark, data, context}, state) do
+    case Bookmarks.create(data, context) do
+      {:ok, _bookmark} ->
+        Logger.info("Bookmarked message #{data.message_id} for user #{data.user_id}")
+
+      {:error, changeset} ->
+        Logger.error("Bookmark failed: #{inspect(changeset.errors)}")
+    end
+
     {:noreply, state}
   end
 end

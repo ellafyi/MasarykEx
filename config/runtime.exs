@@ -1,6 +1,6 @@
 import Config
 
-# Automatically load .env in dev
+# Load .env in dev
 if config_env() == :dev and File.exists?(".env") do
   File.stream!(".env")
   |> Stream.map(&String.trim/1)
@@ -11,9 +11,36 @@ if config_env() == :dev and File.exists?(".env") do
   end)
 end
 
-bot_token = System.get_env("BOT_TOKEN") ||
-  raise "Environment variable BOT_TOKEN is missing. Set it in your .env file or shell."
+# Database (test is configured in test.exs)
+if config_env() != :test do
+  if url = System.get_env("DATABASE_URL") do
+    config :masaryk_ex, MasarykEx.Repo, url: url
+  else
+    config :masaryk_ex, MasarykEx.Repo,
+      username: System.get_env("PGUSER", "postgres"),
+      password: System.get_env("PGPASSWORD", "postgres"),
+      hostname: System.get_env("PGHOST", "localhost"),
+      database: System.get_env("PGDATABASE", "masaryk_ex_#{config_env()}")
+  end
 
-config :nostrum,
-  token: bot_token,
-  gateway_intents: [:direct_messages, :guild_messages, :message_content]
+  config :masaryk_ex, MasarykEx.Repo, pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
+end
+
+# Discord. A token is only required when the gateway consumer starts; the CLI
+# runs with discord_enabled: false, so terminal usage needs no token.
+discord_enabled = System.get_env("DISCORD_ENABLED", "true") != "false"
+config :masaryk_ex, discord_enabled: discord_enabled
+
+if discord_enabled do
+  bot_token =
+    System.get_env("BOT_TOKEN") ||
+      raise "Environment variable BOT_TOKEN is missing. Set it in your .env file or shell."
+
+  config :nostrum,
+    token: bot_token,
+    gateway_intents: [:direct_messages, :guild_messages, :message_content]
+
+  if guild_id = System.get_env("DISCORD_GUILD_ID") do
+    config :masaryk_ex, :discord_guild_id, String.to_integer(guild_id)
+  end
+end

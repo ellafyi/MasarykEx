@@ -57,8 +57,8 @@ defmodule MasarykEx.Adapters.Discord.Consumer do
       |> Enum.map(&Translate.command_to_discord(&1.definition()))
 
     case ApplicationCommand.bulk_overwrite_guild_commands(guild_id, defs) do
-      {:ok, registered} ->
-        Logger.info("Registered commands: #{inspect(Enum.map(registered, & &1["name"]))}")
+      {:ok, _registered} ->
+        Logger.info("Registered commands: #{inspect(Enum.map(defs, & &1.name))}")
 
       error ->
         Logger.error("Failed to register commands: #{inspect(error)}")

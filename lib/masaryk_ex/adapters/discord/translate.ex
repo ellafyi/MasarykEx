@@ -4,14 +4,14 @@ defmodule MasarykEx.Adapters.Discord.Translate do
   only module in the Discord adapter that knows both worlds.
   """
 
-  alias MasarykEx.Core.{Context, Event, Request, Response}
+  alias MasarykEx.Core.{Context, Embed, Event, Request, Response}
 
   @doc "Build a neutral Request from a Discord interaction."
   @spec to_request(map()) :: Request.t()
   def to_request(interaction) do
     %Request{
       command: interaction.data.name,
-      args: options_to_args(interaction.data.options),
+      args: interaction_args(interaction),
       context: %Context{
         interface: :discord,
         user_id: interaction_user_id(interaction),
@@ -23,20 +23,31 @@ defmodule MasarykEx.Adapters.Discord.Translate do
 
   @doc "Render a neutral Response as a Discord interaction response."
   @spec to_discord_response(Response.t()) :: map()
-  def to_discord_response(%Response{content: content, ephemeral: ephemeral}) do
-    data = %{content: content}
-    data = if ephemeral, do: Map.put(data, :flags, 64), else: data
+  def to_discord_response(%Response{content: content, ephemeral: ephemeral, embed: embed}) do
+    data =
+      %{}
+      |> put_content(content)
+      |> put_embed(embed)
+      |> put_flags(ephemeral)
+
     %{type: 4, data: data}
   end
 
-  @doc "Convert a neutral command `definition/0` into a Discord slash-command spec."
+  @doc "Convert a neutral command `definition/0` into a Discord application-command spec."
   @spec command_to_discord(map()) :: map()
   def command_to_discord(definition) do
-    %{
-      name: definition.name,
-      description: definition.description,
-      options: Enum.map(Map.get(definition, :args, []), &arg_to_option/1)
-    }
+    case Map.get(definition, :type, :slash) do
+      # MESSAGE context-menu command: name + type only, no description/options.
+      :message ->
+        %{name: definition.name, type: 3}
+
+      :slash ->
+        %{
+          name: definition.name,
+          description: definition.description,
+          options: Enum.map(Map.get(definition, :args, []), &arg_to_option/1)
+        }
+    end
   end
 
   @doc "Translate a Nostrum gateway event into a neutral Event, or nil to ignore it."
@@ -80,8 +91,50 @@ defmodule MasarykEx.Adapters.Discord.Translate do
 
   def to_event(_type, _payload), do: nil
 
+  # MESSAGE context-menu command (type 3): pull the resolved target message.
+  defp interaction_args(%{data: %{type: 3, target_id: target_id, resolved: resolved}}) do
+    message = resolved.messages[target_id]
+
+    %{
+      "message" => %{
+        "id" => maybe_string(message.id),
+        "content" => message.content,
+        "author" => message.author.username,
+        "author_id" => maybe_string(message.author.id),
+        "channel_id" => maybe_string(message.channel_id)
+      }
+    }
+  end
+
+  # Slash command (type 1): options become named args.
+  defp interaction_args(%{data: %{options: options}}), do: options_to_args(options)
+
   defp options_to_args(nil), do: %{}
   defp options_to_args(options), do: Map.new(options, &{&1.name, &1.value})
+
+  defp put_content(data, ""), do: data
+  defp put_content(data, content), do: Map.put(data, :content, content)
+
+  defp put_embed(data, nil), do: data
+  defp put_embed(data, %Embed{} = embed), do: Map.put(data, :embeds, [discord_embed(embed)])
+
+  defp put_flags(data, true), do: Map.put(data, :flags, 64)
+  defp put_flags(data, false), do: data
+
+  defp discord_embed(%Embed{} = embed) do
+    %{
+      title: embed.title,
+      description: embed.description,
+      color: embed.color,
+      footer: embed.footer && %{text: embed.footer},
+      fields: Enum.map(embed.fields, &embed_field/1)
+    }
+    |> Map.reject(fn {_k, v} -> is_nil(v) end)
+  end
+
+  defp embed_field(field) do
+    %{name: field.name, value: field.value, inline: Map.get(field, :inline, false)}
+  end
 
   defp interaction_user_id(%{member: %{user: %{id: id}}}), do: maybe_string(id)
   defp interaction_user_id(%{user: %{id: id}}), do: maybe_string(id)

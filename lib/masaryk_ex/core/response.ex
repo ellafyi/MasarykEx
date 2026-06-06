@@ -5,12 +5,15 @@ defmodule MasarykEx.Core.Response do
   `content`. Richer fields can be added later without touching feature code.
   """
 
+  alias MasarykEx.Core.Embed
+
   @type t :: %__MODULE__{
           content: String.t(),
-          ephemeral: boolean()
+          ephemeral: boolean(),
+          embed: Embed.t() | nil
         }
 
-  defstruct content: "", ephemeral: false
+  defstruct content: "", ephemeral: false, embed: nil
 
   @doc "Convenience constructor for a plain text response."
   @spec text(String.t(), keyword()) :: t()

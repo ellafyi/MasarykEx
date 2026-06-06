@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Bot.Run do
 
   use Mix.Task
 
-  alias MasarykEx.Core.{Command, Context, Dispatcher, Request}
+  alias MasarykEx.Core.{Command, Context, Dispatcher, Embed, Request, Response}
 
   @impl true
   def run(argv) do
@@ -35,8 +35,22 @@ defmodule Mix.Tasks.Bot.Run do
           context: %Context{interface: :cli}
         }
 
-        Mix.shell().info(Dispatcher.run(request).content)
+        Mix.shell().info(render(Dispatcher.run(request)))
     end
+  end
+
+  defp render(%Response{embed: nil, content: content}), do: content
+
+  defp render(%Response{embed: %Embed{} = embed, content: content}) do
+    [content, embed_text(embed)]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join("\n")
+  end
+
+  defp embed_text(%Embed{} = embed) do
+    [embed.title, embed.description | Enum.map(embed.fields, &"• #{&1.name} — #{&1.value}")]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join("\n")
   end
 
   defp parse_args(command, argv) do

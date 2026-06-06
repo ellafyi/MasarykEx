@@ -36,12 +36,7 @@ config :masaryk_ex, discord_enabled: discord_enabled
 if discord_enabled do
   config :nostrum,
     token: bot_token,
-    gateway_intents: [
-      :direct_messages,
-      :guild_messages,
-      :guild_message_reactions,
-      :message_content
-    ]
+    gateway_intents: [:direct_messages, :guild_messages, :message_content]
 
   if guild_id = System.get_env("DISCORD_GUILD_ID") do
     config :masaryk_ex, :discord_guild_id, String.to_integer(guild_id)

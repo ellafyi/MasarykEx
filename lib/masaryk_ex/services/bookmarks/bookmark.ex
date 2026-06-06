@@ -11,6 +11,8 @@ defmodule MasarykEx.Services.Bookmarks.Bookmark do
     field :message_id, :string
     field :channel_id, :string
     field :guild_id, :string
+    field :content, :string
+    field :author, :string
 
     timestamps()
   end
@@ -18,7 +20,7 @@ defmodule MasarykEx.Services.Bookmarks.Bookmark do
   @doc false
   def changeset(bookmark, attrs) do
     bookmark
-    |> cast(attrs, [:user_id, :message_id, :channel_id, :guild_id])
+    |> cast(attrs, [:user_id, :message_id, :channel_id, :guild_id, :content, :author])
     |> validate_required([:user_id, :message_id])
   end
 end

@@ -20,6 +20,7 @@ if config_env() != :test do
       username: System.get_env("PGUSER", "postgres"),
       password: System.get_env("PGPASSWORD", "postgres"),
       hostname: System.get_env("PGHOST", "localhost"),
+      port: String.to_integer(System.get_env("PGPORT", "5433")),
       database: System.get_env("PGDATABASE", "masaryk_ex_#{config_env()}")
   end
 

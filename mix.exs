@@ -8,7 +8,19 @@ defmodule MasarykEx.MixProject do
       elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
+      releases: releases(),
       deps: deps()
+    ]
+  end
+
+  # nostrum is `runtime: false` so it doesn't auto-start (and demand a token) in
+  # dev/test/CLI. Include it in releases as a loaded-but-not-started app; the
+  # application starts it itself only when Discord is enabled.
+  defp releases do
+    [
+      masaryk_ex: [
+        applications: [nostrum: :load]
+      ]
     ]
   end
 

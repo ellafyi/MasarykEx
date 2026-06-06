@@ -2,11 +2,11 @@
 # Requires a reachable Postgres at runtime (set DATABASE_URL). Provide BOT_TOKEN
 # and DISCORD_GUILD_ID to run the Discord adapter, or DISCORD_ENABLED=false to
 # run headless.
-ARG ELIXIR_VERSION=1.19.0
-ARG ERLANG_VERSION=27.2
-ARG DEBIAN_VERSION=bookworm-20250630-slim
+ARG ELIXIR_VERSION=1.19.5
+ARG ERLANG_VERSION=28.5.0.1
+ARG DEBIAN_VERSION=bookworm-20260518-slim
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${ERLANG_VERSION}-debian-${DEBIAN_VERSION}"
-ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
+ARG RUNNER_IMAGE="debian:bookworm-slim"
 
 FROM ${BUILDER_IMAGE} AS builder
 

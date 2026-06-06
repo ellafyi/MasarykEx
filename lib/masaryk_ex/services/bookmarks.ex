@@ -1,8 +1,8 @@
-defmodule MasarykEx.Bookmarks do
+defmodule MasarykEx.Services.Bookmarks do
   @moduledoc "Persistence for bookmarked messages."
 
   alias MasarykEx.Repo
-  alias MasarykEx.Bookmarks.Bookmark
+  alias MasarykEx.Services.Bookmarks.Bookmark
   alias MasarykEx.Core.Context
 
   @doc "Persist a bookmark from a neutral reaction event's data + context."

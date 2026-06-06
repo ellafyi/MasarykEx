@@ -7,7 +7,7 @@ defmodule MasarykEx.Services.BookmarkListener do
   use GenServer
   use MasarykEx.Core.Service
 
-  alias MasarykEx.Bookmarks
+  alias MasarykEx.Services.Bookmarks
   alias MasarykEx.Core.Event
 
   require Logger
@@ -36,6 +36,9 @@ defmodule MasarykEx.Services.BookmarkListener do
   def handle_cast({:bookmark, data, context}, state) do
     case Bookmarks.create(data, context) do
       {:ok, _bookmark} ->
+        with {:ok, dm} <- Nostrum.Api.User.create_dm(String.to_integer(data.user_id)) do
+          Nostrum.Api.Message.create(dm.id, content: "bookmarked #{data.message_id}")
+        end
         Logger.info("Bookmarked message #{data.message_id} for user #{data.user_id}")
 
       {:error, changeset} ->

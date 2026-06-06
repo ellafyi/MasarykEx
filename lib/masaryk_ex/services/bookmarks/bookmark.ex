@@ -1,4 +1,4 @@
-defmodule MasarykEx.Bookmarks.Bookmark do
+defmodule MasarykEx.Services.Bookmarks.Bookmark do
   @moduledoc "A message a user bookmarked via reaction."
 
   use Ecto.Schema

@@ -1,9 +1,11 @@
 defmodule MasarykEx.Core.Command do
   @moduledoc """
-  Interface-neutral behaviour for a command. Drop a file in
-  `lib/masaryk_ex/commands/`, implement this, and the `Autoloader` exposes it
-  through every adapter. A command receives a `%Request{}` and returns a
-  `%Response{}`,it knows nothing about Discord.
+  Interface-neutral behaviour for a command. Create a folder
+  `lib/masaryk_ex/commands/<feature>/` with a `definition.ex` that implements
+  this behaviour (module `MasarykEx.Commands.<Feature>.Definition`); the
+  `Autoloader` exposes it through every adapter. Put supporting code in sibling
+  files in the same folder. A command receives a `%Request{}` and returns a
+  `%Response{}` — it knows nothing about Discord.
 
   `definition/0` returns a neutral spec `%{name, description, args}` where each
   arg is `%{name, type, required, description}`; adapters translate `args` into
@@ -26,12 +28,12 @@ defmodule MasarykEx.Core.Command do
   end
 
   @doc """
-  Converts a kebab-case command name to its Elixir module.
-  "restaurant-menus" -> MasarykEx.Commands.RestaurantMenus
+  Converts a kebab-case command name to its definition module.
+  "restaurant-menus" -> MasarykEx.Commands.RestaurantMenus.Definition
   """
   @spec to_module(String.t()) :: module()
   def to_module(name) when is_binary(name) do
     module_name = name |> String.split("-") |> Enum.map_join(&String.capitalize/1)
-    Module.concat([MasarykEx.Commands, module_name])
+    Module.concat([MasarykEx.Commands, module_name, "Definition"])
   end
 end

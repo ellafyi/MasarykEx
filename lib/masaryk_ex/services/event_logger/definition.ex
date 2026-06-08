@@ -1,4 +1,4 @@
-defmodule MasarykEx.Services.EventLogger do
+defmodule MasarykEx.Services.EventLogger.Definition do
   @moduledoc "Passive service that logs select events."
 
   use MasarykEx.Core.Service

@@ -1,10 +1,10 @@
-defmodule MasarykEx.Commands.Bookmark do
+defmodule MasarykEx.Commands.Bookmark.Definition do
   @moduledoc "Save a message to your bookmarks (right-click → Apps → Bookmark)."
 
   use MasarykEx.Core.Command
 
   alias MasarykEx.Core.{Request, Response}
-  alias MasarykEx.Services.Bookmarks
+  alias MasarykEx.Data.Bookmarks
 
   @impl true
   def definition do

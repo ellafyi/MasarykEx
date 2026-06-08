@@ -56,12 +56,25 @@ lib/masaryk_ex/
     discord/            # Nostrum gateway consumer + translation
     cli/                # `mix bot.run` task
   commands/             # FEATURES: user-invoked commands (auto-discovered)
+    <feature>/
+      definition.ex     #   MasarykEx.Commands.<Feature>.Definition (the behaviour impl)
+      ...               #   optional helper modules for the feature
   services/             # FEATURES: event reactors / background work (auto-discovered)
-  autoloader.ex         # finds modules under Commands/ and Services/ at runtime
+    <feature>/
+      definition.ex     #   MasarykEx.Services.<Feature>.Definition
+  data/                 # data access (NOT auto-discovered) — one folder per domain
+    <domain>/           #   e.g. bookmarks/: context + Ecto schema(s)
+  autoloader.ex         # finds Definition modules under Commands/ and Services/
   repo.ex               # Ecto repo (Postgres)
 priv/repo/migrations/   # database migrations
 config/                 # config.exs, {dev,test,prod}.exs, runtime.exs
 ```
+
+Each command/service lives in **its own folder** whose `definition.ex` implements
+the behaviour (`MasarykEx.Commands.<Feature>.Definition`); supporting code goes in
+sibling files. The roots of `commands/` and `services/` contain only feature
+folders. Shared persistence/domain code lives under `data/<domain>/` and is called
+directly (not discovered).
 
 ### How it works together
 
@@ -74,17 +87,19 @@ config/                 # config.exs, {dev,test,prod}.exs, runtime.exs
   `handle_event/2`. Services that need their own process (state, timers) also
   export `child_spec/1` and are supervised from `MasarykEx.Application`.
 - **Discovery** is by namespace: `MasarykEx.Autoloader` scans compiled modules
-  under `MasarykEx.Commands` / `MasarykEx.Services`. There is no registry to edit.
+  under `MasarykEx.Commands` / `MasarykEx.Services` for those exporting the
+  behaviour callbacks (the `Definition` modules). Helper modules in the same
+  folder are ignored. There is no registry to edit — add a folder and restart.
 
 ## Adding functionality
 
 ### A slash command
 
-Create `lib/masaryk_ex/commands/<name>.ex`. The file name (kebab-case) maps to the
-module name (`ping-pong` -> `MasarykEx.Commands.PingPong`).
+Create `lib/masaryk_ex/commands/<name>/definition.ex`. The folder name (kebab-case)
+maps to the module (`ping-pong/` -> `MasarykEx.Commands.PingPong.Definition`).
 
 ```elixir
-defmodule MasarykEx.Commands.Ping do
+defmodule MasarykEx.Commands.Ping.Definition do
   use MasarykEx.Core.Command
 
   alias MasarykEx.Core.{Request, Response}
@@ -117,7 +132,7 @@ Set `type: :message` in the definition (no `description`/`args`). The invoked
 message arrives in `args["message"]`:
 
 ```elixir
-defmodule MasarykEx.Commands.Bookmark do
+defmodule MasarykEx.Commands.Bookmark.Definition do
   use MasarykEx.Core.Command
   alias MasarykEx.Core.{Request, Response}
 
@@ -133,7 +148,9 @@ defmodule MasarykEx.Commands.Bookmark do
 end
 ```
 
-See `lib/masaryk_ex/commands/bookmark.ex` and `bookmarks.ex` for a full example.
+See `lib/masaryk_ex/commands/bookmark/definition.ex` and
+`commands/bookmarks/definition.ex` for a full example (they persist via the
+`MasarykEx.Data.Bookmarks` domain context).
 
 ### Returning an embed
 
@@ -154,11 +171,11 @@ The Discord adapter renders a real embed and the the CLI prints a text version.
 
 ### A service (reacts to events)
 
-Create `lib/masaryk_ex/services/<name>.ex`. **Passive** services just implement
-`handle_event/2`:
+Create `lib/masaryk_ex/services/<name>/definition.ex`. **Passive** services just
+implement `handle_event/2`:
 
 ```elixir
-defmodule MasarykEx.Services.Greeter do
+defmodule MasarykEx.Services.Greeter.Definition do
   use MasarykEx.Core.Service
   alias MasarykEx.Core.Event
 
@@ -175,10 +192,19 @@ end
 **Active** services (own process / state) also `use GenServer` and define
 `start_link/1` + `init/1` while; `use GenServer` provides `child_spec/1`, which makes
 `MasarykEx.Application` start and supervise it automatically. See
-`lib/masaryk_ex/services/event_logger.ex` for a passive example.
+`lib/masaryk_ex/services/event_logger/definition.ex` for a passive example.
 
 Event types are neutral (e.g. `:message_created`, `:reaction_added`). To support a
 new gateway event, add a clause to `Adapters.Discord.Translate.to_event/2`.
+
+### Data access
+
+Persistence and other shared domain logic that isn't itself a command or service
+lives under `lib/masaryk_ex/data/<domain>/` — one folder per domain, holding a
+context module and its Ecto schema(s), e.g. `MasarykEx.Data.Bookmarks` +
+`MasarykEx.Data.Bookmarks.Bookmark`. Commands/services call these directly; they
+are not auto-discovered. Add a new domain by adding a folder (and a migration
+under `priv/repo/migrations/`).
 
 ### Per feature configuration
 

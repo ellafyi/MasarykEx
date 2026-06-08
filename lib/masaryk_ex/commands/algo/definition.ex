@@ -1,4 +1,4 @@
-defmodule MasarykEx.Commands.Algo do
+defmodule MasarykEx.Commands.Algo.Definition do
   @moduledoc "Say surprise."
 
   use MasarykEx.Core.Command

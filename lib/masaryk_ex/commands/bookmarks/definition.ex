@@ -1,10 +1,10 @@
-defmodule MasarykEx.Commands.Bookmarks do
+defmodule MasarykEx.Commands.Bookmarks.Definition do
   @moduledoc "List your bookmarked messages."
 
   use MasarykEx.Core.Command
 
   alias MasarykEx.Core.{Embed, Request, Response}
-  alias MasarykEx.Services.Bookmarks
+  alias MasarykEx.Data.Bookmarks
 
   @impl true
   def definition do

@@ -1,4 +1,4 @@
-defmodule MasarykEx.Commands.Ping do
+defmodule MasarykEx.Commands.Ping.Definition do
   @moduledoc false
   use MasarykEx.Core.Command
 
@@ -27,8 +27,8 @@ defmodule MasarykEx.DispatcherTest do
   end
 
   test "refuses a disabled command" do
-    Application.put_env(:masaryk_ex, MasarykEx.Commands.Ping, enabled: false)
-    on_exit(fn -> Application.delete_env(:masaryk_ex, MasarykEx.Commands.Ping) end)
+    Application.put_env(:masaryk_ex, MasarykEx.Commands.Ping.Definition, enabled: false)
+    on_exit(fn -> Application.delete_env(:masaryk_ex, MasarykEx.Commands.Ping.Definition) end)
 
     assert %Response{content: "The `ping` command is currently disabled."} =
              Dispatcher.run(request("ping"))

@@ -1,4 +1,4 @@
-defmodule MasarykEx.Commands.Hello do
+defmodule MasarykEx.Commands.Hello.Definition do
   @moduledoc "Say hello."
 
   use MasarykEx.Core.Command

@@ -1,5 +1,5 @@
-defmodule MasarykEx.Services.Bookmarks.Bookmark do
-  @moduledoc "A message a user bookmarked via reaction."
+defmodule MasarykEx.Data.Bookmarks.Bookmark do
+  @moduledoc "A message a user bookmarked."
 
   use Ecto.Schema
   import Ecto.Changeset

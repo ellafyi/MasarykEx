@@ -1,4 +1,4 @@
-defmodule MasarykEx.Commands.RestaurantMenus do
+defmodule MasarykEx.Commands.RestaurantMenus.Definition do
   @moduledoc "List available restaurant menus."
 
   use MasarykEx.Core.Command

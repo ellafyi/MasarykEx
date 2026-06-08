@@ -5,6 +5,6 @@ config :masaryk_ex,
   discord_enabled: true
 
 # Static per-feature defaults can live here, e.g.:
-#   config :masaryk_ex, MasarykEx.Commands.RestaurantMenus, restaurants: ["A", "B"]
+#   config :masaryk_ex, MasarykEx.Commands.RestaurantMenus.Definition, restaurants: ["A", "B"]
 
 import_config "#{config_env()}.exs"

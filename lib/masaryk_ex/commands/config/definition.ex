@@ -1,4 +1,4 @@
-defmodule MasarykEx.Commands.Config do
+defmodule MasarykEx.Commands.Config.Definition do
   @moduledoc """
   View and change feature settings. A normal command, so it works identically
   from Discord and the CLI. Writes go to the per-guild scope when a guild is in
@@ -94,7 +94,10 @@ defmodule MasarykEx.Commands.Config do
   defp resolve_module(name) do
     module_name = name |> String.split("-") |> Enum.map_join(&String.capitalize/1)
 
-    [Module.concat([MasarykEx.Commands, module_name]), Module.concat([MasarykEx.Services, module_name])]
+    [
+      Module.concat([MasarykEx.Commands, module_name, "Definition"]),
+      Module.concat([MasarykEx.Services, module_name, "Definition"])
+    ]
     |> Enum.find(&Code.ensure_loaded?/1)
   end
 

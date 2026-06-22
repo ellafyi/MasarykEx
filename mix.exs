@@ -41,7 +41,8 @@ defmodule MasarykEx.MixProject do
       {:ecto_sql, "~> 3.12"},
       {:postgrex, "~> 0.19"},
       {:req, "~> 0.5"},
-      {:floki, "~> 0.38.3"}
+      {:floki, "~> 0.38.3"},
+      {:codepagex, "~> 0.1"}
     ]
   end
 

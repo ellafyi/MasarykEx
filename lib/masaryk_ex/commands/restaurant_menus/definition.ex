@@ -3,7 +3,7 @@ defmodule MasarykEx.Commands.RestaurantMenus.Definition do
 
   use MasarykEx.Core.Command
 
-  alias MasarykEx.Commands.RestaurantMenus.{Restaurants, RestaurantDescriptor, CP1250}
+  alias MasarykEx.Commands.RestaurantMenus.{Restaurants, RestaurantDescriptor}
   alias MasarykEx.Core.{Request, Response, Embed}
 
   @impl true
@@ -154,7 +154,7 @@ defmodule MasarykEx.Commands.RestaurantMenus.Definition do
   defp fetch_menicka(id) do
     case Req.get("https://www.menicka.cz/#{id}.html") do
       {:ok, %{status: 200, body: body}} ->
-        {:ok, document} = body |> CP1250.decode() |> Floki.parse_document()
+        {:ok, document} = body |> Codepagex.to_string!(:"VENDORS/MICSFT/WINDOWS/CP1250") |> Floki.parse_document()
         today = Date.utc_today()
         date = "#{today.day}.#{today.month}.#{today.year}"
 

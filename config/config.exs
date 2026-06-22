@@ -1,5 +1,7 @@
 import Config
 
+config :codepagex, :encodings, ["VENDORS/MICSFT/WINDOWS/CP1250"]
+
 config :masaryk_ex,
   ecto_repos: [MasarykEx.Repo],
   discord_enabled: true

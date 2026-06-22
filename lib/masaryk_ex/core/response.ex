@@ -10,10 +10,11 @@ defmodule MasarykEx.Core.Response do
   @type t :: %__MODULE__{
           content: String.t(),
           ephemeral: boolean(),
-          embed: Embed.t() | nil
+          embed: Embed.t() | nil,
+          embeds: [Embed.t()]
         }
 
-  defstruct content: "", ephemeral: false, embed: nil
+  defstruct content: "", ephemeral: false, embed: nil, embeds: []
 
   @doc "Convenience constructor for a plain text response."
   @spec text(String.t(), keyword()) :: t()

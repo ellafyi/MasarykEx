@@ -39,7 +39,9 @@ defmodule MasarykEx.MixProject do
       # enabled, so the CLI and tests run without a bot token.
       {:nostrum, "~> 0.10", runtime: false},
       {:ecto_sql, "~> 3.12"},
-      {:postgrex, "~> 0.19"}
+      {:postgrex, "~> 0.19"},
+      {:req, "~> 0.5"},
+      {:floki, "~> 0.38.3"}
     ]
   end
 

@@ -23,11 +23,11 @@ defmodule MasarykEx.Adapters.Discord.Translate do
 
   @doc "Render a neutral Response as a Discord interaction response."
   @spec to_discord_response(Response.t()) :: map()
-  def to_discord_response(%Response{content: content, ephemeral: ephemeral, embed: embed}) do
+  def to_discord_response(%Response{content: content, ephemeral: ephemeral, embed: embed, embeds: embeds}) do
     data =
       %{}
       |> put_content(content)
-      |> put_embed(embed)
+      |> put_embeds(embed, embeds)
       |> put_flags(ephemeral)
 
     %{type: 4, data: data}
@@ -115,8 +115,11 @@ defmodule MasarykEx.Adapters.Discord.Translate do
   defp put_content(data, ""), do: data
   defp put_content(data, content), do: Map.put(data, :content, content)
 
-  defp put_embed(data, nil), do: data
-  defp put_embed(data, %Embed{} = embed), do: Map.put(data, :embeds, [discord_embed(embed)])
+  defp put_embeds(data, nil, []), do: data
+  defp put_embeds(data, embed, embeds) do
+    all = List.wrap(embed && discord_embed(embed)) ++ Enum.map(embeds, &discord_embed/1)
+    Map.put(data, :embeds, all)
+  end
 
   defp put_flags(data, true), do: Map.put(data, :flags, 64)
   defp put_flags(data, false), do: data

@@ -42,3 +42,11 @@ if discord_enabled do
     config :masaryk_ex, :discord_guild_id, String.to_integer(guild_id)
   end
 end
+
+if secret = System.get_env("SECRET_KEY_BASE") do
+  config :masaryk_ex_web, MasarykExWeb.Endpoint,
+    http: [ip: {0, 0, 0, 0}, port: String.to_integer(System.get_env("PORT", "4000"))],
+    url: [host: System.get_env("PHX_HOST", "localhost")],
+    secret_key_base: secret,
+    server: true
+end

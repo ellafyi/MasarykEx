@@ -19,12 +19,13 @@ RUN mix local.hex --force && mix local.rebar --force
 ENV MIX_ENV=prod
 
 COPY mix.exs mix.lock ./
+COPY apps/masaryk_ex/mix.exs apps/masaryk_ex/
+COPY apps/masaryk_ex_web/mix.exs apps/masaryk_ex_web/
 RUN mix deps.get --only prod
 RUN mix deps.compile
 
 COPY config config
-COPY priv priv
-COPY lib lib
+COPY apps apps
 
 RUN mix compile
 RUN mix release

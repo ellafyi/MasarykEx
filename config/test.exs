@@ -13,3 +13,5 @@ config :masaryk_ex, MasarykEx.Repo,
   pool_size: System.schedulers_online() * 2
 
 config :logger, level: :warning
+
+config :masaryk_ex_web, MasarykExWeb.Endpoint, server: false

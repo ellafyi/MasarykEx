@@ -3,7 +3,6 @@ defmodule MasarykExWeb.Application do
 
   def start(_type, _args) do
     children = [
-      {Phoenix.PubSub, name: MasarykExWeb.PubSub},
       MasarykExWeb.Telemetry,
       MasarykExWeb.Endpoint
     ]

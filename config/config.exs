@@ -12,7 +12,7 @@ config :masaryk_ex,
 config :masaryk_ex_web, MasarykExWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
-  pubsub_server: MasarykExWeb.PubSub,
+  pubsub_server: MasarykEx.PubSub,
   live_view: [signing_salt: "YHlclDmS1lKFW4hV2PuQt6HfPsqUiERQ"]
 
 config :masaryk_ex_web, :generators, context_app: :masaryk_ex

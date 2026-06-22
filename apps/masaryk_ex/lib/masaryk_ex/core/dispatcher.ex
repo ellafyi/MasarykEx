@@ -14,6 +14,8 @@ defmodule MasarykEx.Core.Dispatcher do
   def run(%Request{command: name, context: context} = request) do
     module = Command.to_module(name)
 
+    MasarykEx.Stats.increment(name)
+
     cond do
       not command?(module) ->
         Logger.warning("Unknown command: #{name} -> #{inspect(module)}")

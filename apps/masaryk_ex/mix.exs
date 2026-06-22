@@ -27,7 +27,8 @@ defmodule MasarykEx.MixProject do
       {:postgrex, "~> 0.19"},
       {:req, "~> 0.5"},
       {:floki, "~> 0.38.3"},
-      {:codepagex, "~> 0.1"}
+      {:codepagex, "~> 0.1"},
+      {:phoenix_pubsub, "~> 2.1"}
     ]
   end
 end

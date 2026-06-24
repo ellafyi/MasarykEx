@@ -1,7 +1,19 @@
 defmodule MasarykExWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :masaryk_ex_web
 
-  socket "/live", Phoenix.LiveView.Socket, websocket: true, longpoll: false
+  # Shared by Plug.Session (HTTP) and the LiveView socket (WebSocket) so the
+  # session cookie is available in connected mounts, not just HTTP requests.
+  @session_options [
+    store: :cookie,
+    key: "_masaryk_ex_web_key",
+    signing_salt: "dashboard",
+    same_site: "Lax",
+    max_age: 60 * 60 * 8
+  ]
+
+  socket "/live", Phoenix.LiveView.Socket,
+    websocket: [connect_info: [session: @session_options]],
+    longpoll: false
 
   plug Plug.Static, at: "/assets/phoenix", from: {:phoenix, "priv/static"}
   plug Plug.Static, at: "/assets/lv", from: {:phoenix_live_view, "priv/static"}
@@ -12,12 +24,7 @@ defmodule MasarykExWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
 
-  plug Plug.Session,
-    store: :cookie,
-    key: "_masaryk_ex_web_key",
-    signing_salt: "dashboard",
-    same_site: "Lax",
-    max_age: 60 * 60 * 8
+  plug Plug.Session, @session_options
 
   plug MasarykExWeb.Router
 end

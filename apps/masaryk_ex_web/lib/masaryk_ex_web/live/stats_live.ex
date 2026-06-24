@@ -43,6 +43,12 @@ defmodule MasarykExWeb.Live.StatsLive do
   def render(assigns) do
     ~H"""
     <div style="font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px;">
+      <nav style="margin-bottom: 24px; font-size: 0.9rem;">
+        <span style="font-weight: bold;">Stats</span>
+        <span style="color: #ccc; margin: 0 8px;">·</span>
+        <a href="/controls" style="color: #5865F2; text-decoration: none;">Controls</a>
+      </nav>
+
       <h1 style="font-size: 1.5rem; margin-bottom: 24px;">Bot Stats</h1>
 
       <section style="margin-bottom: 32px;">

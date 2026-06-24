@@ -10,6 +10,7 @@ defmodule MasarykExWeb.ControlsLiveTest do
     {:ok, _view, html} = live(conn, "/controls")
 
     assert html =~ "Command Controls"
+    assert html =~ "Log out"
     assert html =~ "phx-click=\"toggle\""
     assert html =~ "config"
   end

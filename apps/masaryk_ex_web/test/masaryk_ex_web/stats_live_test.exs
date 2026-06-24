@@ -9,5 +9,7 @@ defmodule MasarykExWeb.StatsLiveTest do
     conn = init_test_session(conn, %{user_id: "42", username: "ok"})
     {:ok, _view, html} = live(conn, "/stats")
     assert html =~ "Bot Stats"
+    assert html =~ "Log out"
+    assert html =~ "ok"
   end
 end

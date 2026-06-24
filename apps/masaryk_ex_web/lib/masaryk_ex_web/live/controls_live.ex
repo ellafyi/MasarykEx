@@ -26,10 +26,17 @@ defmodule MasarykExWeb.Live.ControlsLive do
   def render(assigns) do
     ~H"""
     <div style="font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px;">
-      <nav style="margin-bottom: 24px; font-size: 0.9rem;">
-        <a href="/stats" style="color: #5865F2; text-decoration: none;">Stats</a>
-        <span style="color: #ccc; margin: 0 8px;">·</span>
-        <span style="font-weight: bold;">Controls</span>
+      <nav style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; font-size: 0.9rem;">
+        <div>
+          <a href="/stats" style="color: #5865F2; text-decoration: none;">Stats</a>
+          <span style="color: #ccc; margin: 0 8px;">·</span>
+          <span style="font-weight: bold;">Controls</span>
+        </div>
+        <div style="color: #999;">
+          Signed in as <strong><%= @current_user.username %></strong>
+          <span style="color: #ccc; margin: 0 8px;">·</span>
+          <a href="/logout" style="color: #5865F2; text-decoration: none;">Log out</a>
+        </div>
       </nav>
 
       <h1 style="font-size: 1.5rem; margin-bottom: 8px;">Command Controls</h1>

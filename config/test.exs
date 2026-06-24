@@ -14,4 +14,6 @@ config :masaryk_ex, MasarykEx.Repo,
 
 config :logger, level: :warning
 
-config :masaryk_ex_web, MasarykExWeb.Endpoint, server: false
+config :masaryk_ex_web, MasarykExWeb.Endpoint,
+  server: false,
+  secret_key_base: String.duplicate("a", 64)

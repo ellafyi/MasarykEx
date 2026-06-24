@@ -255,6 +255,25 @@ Without a `BOT_TOKEN` the bot runs **headless** (no Discord connection) — hand
 the CLI and tests. `DISCORD_GUILD_ID` is the guild where slash/context-menu
 commands are registered on startup.
 
+#### Dashboard login (optional)
+
+The web dashboard (`/stats`, `/dashboard`) is gated behind a Discord login: a
+user may view it only if they hold a specific guild role. To enable it, create
+an OAuth2 application at <https://discord.com/developers>, add the redirect URI
+to its OAuth2 settings, and set:
+
+```
+DISCORD_CLIENT_ID=your_oauth_client_id
+DISCORD_CLIENT_SECRET=your_oauth_client_secret
+DISCORD_REDIRECT_URI=http://localhost:4000/auth/discord/callback
+STATS_ROLE_ID=the_role_id_required_to_view_the_dashboard
+```
+
+The OAuth flow requests only the `identify` scope; the user's roles are read
+with the bot token (the bot must be in `DISCORD_GUILD_ID`). Access **fails
+closed** — if these aren't configured, or the bot is headless, nobody can view
+the dashboard.
+
 ### 2. Start the database
 
 ```bash

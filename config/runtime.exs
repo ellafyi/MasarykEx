@@ -43,6 +43,16 @@ if discord_enabled do
   end
 end
 
+config :masaryk_ex, MasarykEx.Discord.OAuth,
+  client_id: System.get_env("DISCORD_CLIENT_ID"),
+  client_secret: System.get_env("DISCORD_CLIENT_SECRET"),
+  redirect_uri:
+    System.get_env("DISCORD_REDIRECT_URI", "http://localhost:4000/auth/discord/callback")
+
+if role_id = System.get_env("STATS_ROLE_ID") do
+  config :masaryk_ex, :stats_role_id, String.to_integer(role_id)
+end
+
 if secret = System.get_env("SECRET_KEY_BASE") do
   config :masaryk_ex_web, MasarykExWeb.Endpoint,
     http: [ip: {0, 0, 0, 0}, port: String.to_integer(System.get_env("PORT", "4000"))],

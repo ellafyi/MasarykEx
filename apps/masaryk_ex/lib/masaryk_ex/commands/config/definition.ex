@@ -18,7 +18,12 @@ defmodule MasarykEx.Commands.Config.Definition do
       description: "View or change feature settings",
       args: [
         %{name: "action", type: :string, required: true, description: "get | set | unset | list"},
-        %{name: "feature", type: :string, required: false, description: "Feature, e.g. restaurant-menus"},
+        %{
+          name: "feature",
+          type: :string,
+          required: false,
+          description: "Feature, e.g. restaurant-menus"
+        },
         %{name: "key", type: :string, required: false, description: "Setting key"},
         %{name: "value", type: :string, required: false, description: "New value (JSON or text)"},
         %{name: "scope", type: :string, required: false, description: "global | guild"}
@@ -39,7 +44,9 @@ defmodule MasarykEx.Commands.Config.Definition do
 
   defp list(args, context) do
     with_feature(args, fn module, name ->
-      lines = Enum.map_join(Config.all(module, context), "\n", fn {k, v} -> "  #{k} = #{inspect(v)}" end)
+      lines =
+        Enum.map_join(Config.all(module, context), "\n", fn {k, v} -> "  #{k} = #{inspect(v)}" end)
+
       reply("#{name}:\n#{lines}")
     end)
   end
@@ -47,8 +54,11 @@ defmodule MasarykEx.Commands.Config.Definition do
   defp get(args, context) do
     with_feature(args, fn module, name ->
       case Map.get(args, "key") do
-        nil -> reply("get requires a key.")
-        key -> reply("#{name}.#{key} = #{inspect(Config.get(module, String.to_atom(key), context))}")
+        nil ->
+          reply("get requires a key.")
+
+        key ->
+          reply("#{name}.#{key} = #{inspect(Config.get(module, String.to_atom(key), context))}")
       end
     end)
   end

@@ -75,6 +75,7 @@ defmodule MasarykEx.Commands.RestaurantMenus.Definition do
         clean = dish |> String.replace(~r/\s*\(\d{1,2}(?:,\d{1,2})*\)/u, "") |> String.trim()
         {bold, rest} = split_bold_menicka(clean)
         "• **#{bold}**#{rest}  – *#{price} Kč*"
+
       _ ->
         text |> String.replace(~r/\s*\(\d{1,2}(?:,\d{1,2})*\)/u, "") |> String.trim()
     end
@@ -82,33 +83,41 @@ defmodule MasarykEx.Commands.RestaurantMenus.Definition do
 
   defp split_bold_menicka(dish) do
     case String.split(dish, "(", parts: 2) do
-      [bold, rest] -> {String.trim(bold), " (#{rest}"}
+      [bold, rest] ->
+        {String.trim(bold), " (#{rest}"}
+
       [bold] ->
         case String.split(bold, ",", parts: 2) do
           [b, r] -> {String.trim(b), ", #{String.trim(r)}"}
-          [b]    -> {b, ""}
+          [b] -> {b, ""}
         end
     end
   end
 
   defp func_embed(%RestaurantDescriptor.Func{name: name, icon: icon, color: color}, items) do
-    body = Enum.map_join(items, "\n", fn {item_name, price} ->
-      case String.split(item_name, ":", parts: 2) do
-        [title, desc] -> "• **#{String.trim(title)}**: #{String.trim(desc)}  – *#{price} Kč*"
-        [title] -> "• **#{String.trim(title)}**  – *#{price} Kč*"
-      end
-    end)
+    body =
+      Enum.map_join(items, "\n", fn {item_name, price} ->
+        case String.split(item_name, ":", parts: 2) do
+          [title, desc] -> "• **#{String.trim(title)}**: #{String.trim(desc)}  – *#{price} Kč*"
+          [title] -> "• **#{String.trim(title)}**  – *#{price} Kč*"
+        end
+      end)
+
     %Embed{color: color, description: "## #{icon} #{name}\n#{body}"}
   end
 
   defp wolt_embed(%RestaurantDescriptor.Wolt{icon: icon, color: color}, name, items) do
-    body = Enum.map_join(items, "\n", fn {item_name, price} ->
-      {bold, rest} = case String.split(item_name, " - ", parts: 2) do
-        [n, d] -> {n, " — #{d}"}
-        [n]    -> {n, ""}
-      end
-      "• **#{bold}**#{rest}  – *#{price} Kč*"
-    end)
+    body =
+      Enum.map_join(items, "\n", fn {item_name, price} ->
+        {bold, rest} =
+          case String.split(item_name, " - ", parts: 2) do
+            [n, d] -> {n, " — #{d}"}
+            [n] -> {n, ""}
+          end
+
+        "• **#{bold}**#{rest}  – *#{price} Kč*"
+      end)
+
     %Embed{color: color, description: "## #{icon} #{name}\n#{body}"}
   end
 
@@ -116,9 +125,13 @@ defmodule MasarykEx.Commands.RestaurantMenus.Definition do
     slug = URI.parse(link).path |> String.split("/") |> List.last()
 
     with {:ok, %{status: 200, body: assortment}} <-
-           Req.get("https://consumer-api.wolt.com/consumer-api/consumer-assortment/v1/venues/slug/#{slug}/assortment"),
+           Req.get(
+             "https://consumer-api.wolt.com/consumer-api/consumer-assortment/v1/venues/slug/#{slug}/assortment"
+           ),
          {:ok, %{status: 200, body: static}} <-
-           Req.get("https://consumer-api.wolt.com/order-xp/web/v1/pages/venue/slug/#{slug}/static") do
+           Req.get(
+             "https://consumer-api.wolt.com/order-xp/web/v1/pages/venue/slug/#{slug}/static"
+           ) do
       item_ids =
         assortment["categories"]
         |> List.wrap()
@@ -136,9 +149,11 @@ defmodule MasarykEx.Commands.RestaurantMenus.Definition do
         |> Enum.map(fn item ->
           name = item["name"] || ""
           desc = item["description"] || ""
+
           label =
-            (if desc != "", do: "#{name} - #{desc}", else: name)
+            if(desc != "", do: "#{name} - #{desc}", else: name)
             |> String.trim()
+
           price = round((item["price"] || 0) / 100)
           {label, price}
         end)
@@ -154,7 +169,9 @@ defmodule MasarykEx.Commands.RestaurantMenus.Definition do
   defp fetch_menicka(id) do
     case Req.get("https://www.menicka.cz/#{id}.html") do
       {:ok, %{status: 200, body: body}} ->
-        {:ok, document} = body |> Codepagex.to_string!(:"VENDORS/MICSFT/WINDOWS/CP1250") |> Floki.parse_document()
+        {:ok, document} =
+          body |> Codepagex.to_string!(:"VENDORS/MICSFT/WINDOWS/CP1250") |> Floki.parse_document()
+
         today = Date.utc_today()
         date = "#{today.day}.#{today.month}.#{today.year}"
 
@@ -173,5 +190,4 @@ defmodule MasarykEx.Commands.RestaurantMenus.Definition do
         {:error, reason}
     end
   end
-
 end

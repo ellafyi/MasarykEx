@@ -12,7 +12,12 @@ defmodule MasarykEx.Application do
     maybe_start_nostrum()
 
     children =
-      [{Phoenix.PubSub, name: MasarykEx.PubSub}, MasarykEx.Repo, MasarykEx.Config.Store, MasarykEx.Stats] ++
+      [
+        {Phoenix.PubSub, name: MasarykEx.PubSub},
+        MasarykEx.Repo,
+        MasarykEx.Config.Store,
+        MasarykEx.Stats
+      ] ++
         service_children() ++ discord_children()
 
     Supervisor.start_link(children, strategy: :one_for_one, name: MasarykEx.Supervisor)

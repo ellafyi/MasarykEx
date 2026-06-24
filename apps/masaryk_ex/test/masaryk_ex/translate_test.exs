@@ -12,7 +12,10 @@ defmodule MasarykEx.Adapters.Discord.TranslateTest do
   test "renders an embed response (nil fields dropped, no crash)" do
     response = %Response{
       ephemeral: true,
-      embed: %Embed{title: "Your bookmarks (1)", fields: [%{name: "n", value: "v", inline: false}]}
+      embed: %Embed{
+        title: "Your bookmarks (1)",
+        fields: [%{name: "n", value: "v", inline: false}]
+      }
     }
 
     assert %{type: 4, data: data} = Translate.to_discord_response(response)

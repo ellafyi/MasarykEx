@@ -11,11 +11,13 @@ defmodule MasarykExWeb.Endpoint do
   plug Plug.Parsers, parsers: [:urlencoded, :multipart, :json], json_decoder: Jason
   plug Plug.MethodOverride
   plug Plug.Head
+
   plug Plug.Session,
     store: :cookie,
     key: "_masaryk_ex_web_key",
     signing_salt: "dashboard",
     same_site: "Lax",
     max_age: 60 * 60 * 8
+
   plug MasarykExWeb.Router
 end

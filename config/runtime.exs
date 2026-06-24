@@ -24,13 +24,17 @@ if config_env() != :test do
       database: System.get_env("PGDATABASE", "masaryk_ex_#{config_env()}")
   end
 
-  config :masaryk_ex, MasarykEx.Repo, pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
+  config :masaryk_ex, MasarykEx.Repo,
+    pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
 end
 
 # Discord is enabled only when a token is present and not explicitly disabled,
 # so the CLI and tests run fine without one.
 bot_token = System.get_env("BOT_TOKEN")
-discord_enabled = System.get_env("DISCORD_ENABLED", "true") != "false" and bot_token not in [nil, ""]
+
+discord_enabled =
+  System.get_env("DISCORD_ENABLED", "true") != "false" and bot_token not in [nil, ""]
+
 config :masaryk_ex, discord_enabled: discord_enabled
 
 if discord_enabled do

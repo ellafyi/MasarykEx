@@ -4,7 +4,11 @@ defmodule MasarykEx.Core.Embed do
   the CLI renders it as text. Fields are `%{name, value, inline}` maps.
   """
 
-  @type field :: %{required(:name) => String.t(), required(:value) => String.t(), optional(:inline) => boolean()}
+  @type field :: %{
+          required(:name) => String.t(),
+          required(:value) => String.t(),
+          optional(:inline) => boolean()
+        }
 
   @type t :: %__MODULE__{
           title: String.t() | nil,

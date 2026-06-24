@@ -39,7 +39,8 @@ defmodule MasarykEx.Commands.Bookmarks.Definition do
   defp field(bookmark) do
     %{
       name: snippet(bookmark.content),
-      value: "<##{bookmark.channel_id}> · [jump](#{jump(bookmark)}) · #{date(bookmark.inserted_at)}"
+      value:
+        "<##{bookmark.channel_id}> · [jump](#{jump(bookmark)}) · #{date(bookmark.inserted_at)}"
     }
   end
 

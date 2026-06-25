@@ -67,6 +67,8 @@ defmodule MasarykEx.Services.Starboard.Definition do
   end
 
   defp post_new(data, context, channel_id, message, count) do
+    media = Outbound.media(message)
+
     attrs = %{
       message_id: data.message_id,
       channel_id: data.channel_id,
@@ -74,7 +76,9 @@ defmodule MasarykEx.Services.Starboard.Definition do
       author: author(message),
       content: content(message),
       emoji: data.emoji_name,
-      reaction_count: count
+      reaction_count: count,
+      media_url: media && media.url,
+      media_type: media && Atom.to_string(media.type)
     }
 
     with {:ok, posted} <- Outbound.create_message(channel_id, Outbound.starboard_embed(attrs)),
@@ -97,7 +101,9 @@ defmodule MasarykEx.Services.Starboard.Definition do
         channel_id: entry.channel_id,
         message_id: entry.message_id,
         emoji: entry.emoji,
-        reaction_count: count
+        reaction_count: count,
+        media_url: entry.media_url,
+        media_type: entry.media_type
       })
 
     if entry.starboard_message_id do

@@ -15,6 +15,8 @@ defmodule MasarykEx.Data.Starboard.StarredMessage do
     field :emoji, :string
     field :reaction_count, :integer, default: 0
     field :starboard_message_id, :string
+    field :media_url, :string
+    field :media_type, :string
 
     timestamps()
   end
@@ -30,7 +32,9 @@ defmodule MasarykEx.Data.Starboard.StarredMessage do
       :content,
       :emoji,
       :reaction_count,
-      :starboard_message_id
+      :starboard_message_id,
+      :media_url,
+      :media_type
     ])
     |> validate_required([:message_id, :emoji])
     |> unique_constraint(:message_id)

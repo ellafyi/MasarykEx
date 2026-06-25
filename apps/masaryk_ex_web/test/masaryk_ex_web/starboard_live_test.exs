@@ -40,6 +40,21 @@ defmodule MasarykExWeb.StarboardLiveTest do
     assert {:ok, "12345"} == Store.get(@feature, "channel_id", "global")
   end
 
+  test "shows a direct link to a starred message's media", %{conn: conn} do
+    {:ok, _} =
+      StarredMessages.create(%{
+        message_id: "m1",
+        emoji: "⭐",
+        reaction_count: 4,
+        media_url: "https://cdn/cat.png",
+        media_type: "image"
+      })
+
+    {:ok, _view, html} = live(authed(conn), "/starboard")
+    assert html =~ "https://cdn/cat.png"
+    assert html =~ "View image"
+  end
+
   test "lists starred messages with pagination", %{conn: conn} do
     for n <- 1..25 do
       {:ok, _} =

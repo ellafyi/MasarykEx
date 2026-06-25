@@ -45,6 +45,60 @@ defmodule MasarykEx.Adapters.Discord.Outbound do
     end
   end
 
+  @doc """
+  First image/video/gif on a fetched message as `%{url, type}` (type is
+  `:image` or `:video`), or `nil`. Uploads come through attachments; link
+  previews (e.g. Tenor gifs) come through embeds. Only the URL is kept — the
+  media itself is never downloaded or stored.
+  """
+  @spec media(map()) :: %{url: String.t(), type: :image | :video} | nil
+  def media(message) do
+    attachment_media(message) || embed_media(message)
+  end
+
+  defp attachment_media(%{attachments: attachments}) when is_list(attachments) do
+    Enum.find_value(attachments, fn attachment ->
+      with type when not is_nil(type) <- classify(attachment.filename),
+           url when is_binary(url) <- attachment.url do
+        %{url: url, type: type}
+      else
+        _ -> nil
+      end
+    end)
+  end
+
+  defp attachment_media(_), do: nil
+
+  defp embed_media(%{embeds: embeds}) when is_list(embeds) do
+    Enum.find_value(embeds, fn embed ->
+      cond do
+        url = media_part_url(embed, :video) -> %{url: url, type: :video}
+        url = media_part_url(embed, :image) -> %{url: url, type: :image}
+        url = media_part_url(embed, :thumbnail) -> %{url: url, type: :image}
+        true -> nil
+      end
+    end)
+  end
+
+  defp embed_media(_), do: nil
+
+  defp media_part_url(embed, key) do
+    case Map.get(embed, key) do
+      %{url: url} when is_binary(url) -> url
+      _ -> nil
+    end
+  end
+
+  defp classify(filename) when is_binary(filename) do
+    case filename |> Path.extname() |> String.downcase() do
+      ext when ext in ~w(.png .jpg .jpeg .gif .webp .bmp) -> :image
+      ext when ext in ~w(.mp4 .mov .webm .mkv .avi) -> :video
+      _ -> nil
+    end
+  end
+
+  defp classify(_), do: nil
+
   @doc "Count of a specific emoji's reactions on a fetched message."
   @spec count_for_emoji(map(), String.t()) :: non_neg_integer()
   def count_for_emoji(%{reactions: reactions}, emoji_name) when is_list(reactions) do
@@ -55,7 +109,11 @@ defmodule MasarykEx.Adapters.Discord.Outbound do
 
   def count_for_emoji(_message, _emoji_name), do: 0
 
-  @doc "Build the Discord embed payload for a starboard post."
+  @doc """
+  Build the Discord embed payload for a starboard post. Images and gifs are
+  inlined in the embed; an uploaded video can't play inside one, so it's linked
+  as a field instead.
+  """
   @spec starboard_embed(map()) :: map()
   def starboard_embed(attrs) do
     embed =
@@ -63,15 +121,30 @@ defmodule MasarykEx.Adapters.Discord.Outbound do
         author: attrs[:author] && %{name: attrs[:author]},
         description: blank_to_nil(attrs[:content]),
         color: @gold,
-        fields: [
-          %{name: "Source", value: "[Jump to message](#{jump_url(attrs)})", inline: true}
-        ],
+        fields: [%{name: "Source", value: "[Jump to message](#{jump_url(attrs)})", inline: true}],
         footer: %{text: "#{attrs[:emoji]} #{attrs[:reaction_count]}"}
       }
+      |> put_media(attrs)
       |> Map.reject(fn {_k, v} -> is_nil(v) end)
 
     %{embeds: [embed]}
   end
+
+  defp put_media(embed, %{media_url: url, media_type: type})
+       when is_binary(url) and type in ["image", :image] do
+    Map.put(embed, :image, %{url: url})
+  end
+
+  defp put_media(embed, %{media_url: url, media_type: type})
+       when is_binary(url) and type in ["video", :video] do
+    Map.update!(
+      embed,
+      :fields,
+      &(&1 ++ [%{name: "🎥 Video", value: "[Watch](#{url})", inline: true}])
+    )
+  end
+
+  defp put_media(embed, _attrs), do: embed
 
   @doc "Permalink to the source message."
   @spec jump_url(map()) :: String.t()

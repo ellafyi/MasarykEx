@@ -71,6 +71,10 @@ defmodule MasarykExWeb.Live.StarboardLive do
   defp excerpt(content) when byte_size(content) <= 120, do: content
   defp excerpt(content), do: String.slice(content, 0, 117) <> "…"
 
+  defp media_label("video"), do: "View video"
+  defp media_label("image"), do: "View image"
+  defp media_label(_), do: "View media"
+
   def render(assigns) do
     ~H"""
     <.page>
@@ -78,8 +82,7 @@ defmodule MasarykExWeb.Live.StarboardLive do
 
       <h1 style="font-size: 1.5rem; margin-bottom: 8px;">Starboard</h1>
       <p style="color: #666; margin-top: 0; margin-bottom: 24px;">
-        Messages that reached the reaction threshold. Changes to the settings below
-        apply immediately, no restart.
+        Messages that reached the reaction threshold. Changes settings below.
       </p>
 
       <form id="starboard-settings" phx-submit="save_settings" style="margin-bottom: 32px; padding: 16px; background: #f9f9f9; border-radius: 4px;">
@@ -135,6 +138,12 @@ defmodule MasarykExWeb.Live.StarboardLive do
                   <a href={jump_url(entry)} target="_blank" style="color: #5865F2; text-decoration: none; font-size: 0.85rem;">
                     Jump to message
                   </a>
+                  <%= if entry.media_url do %>
+                    <span style="color: #ccc; margin: 0 6px;">·</span>
+                    <a href={entry.media_url} target="_blank" style="color: #5865F2; text-decoration: none; font-size: 0.85rem;">
+                      <%= media_label(entry.media_type) %>
+                    </a>
+                  <% end %>
                 </td>
                 <td style="padding: 12px 0; text-align: right; vertical-align: top; white-space: nowrap;">
                   <%= entry.emoji %> <%= entry.reaction_count %>

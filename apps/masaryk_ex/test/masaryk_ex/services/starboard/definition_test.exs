@@ -38,7 +38,9 @@ defmodule MasarykEx.Services.Starboard.DefinitionTest do
     message = %{
       content: Keyword.get(opts, :content, "hello world"),
       author: %{username: Keyword.get(opts, :author, "alice")},
-      reactions: [%{emoji: %{name: emoji}, count: count}]
+      reactions: [%{emoji: %{name: emoji}, count: count}],
+      attachments: Keyword.get(opts, :attachments, []),
+      embeds: Keyword.get(opts, :embeds, [])
     }
 
     Application.put_env(:masaryk_ex, :starboard_message_fetcher, fn _channel, _message ->
@@ -124,5 +126,38 @@ defmodule MasarykEx.Services.Starboard.DefinitionTest do
     assert :ok = Definition.handle_event(event(:reaction_added), %{threshold: 2, channel_id: nil})
 
     refute_received {:posted, _, _}
+  end
+
+  test "inlines an image attachment in the embed and stores its url" do
+    stub_message(2, attachments: [%{filename: "cat.png", url: "https://cdn/cat.png"}])
+
+    assert :ok = Definition.handle_event(event(:reaction_added), @config)
+
+    assert_received {:posted, 555, %{embeds: [embed]}}
+    assert embed.image == %{url: "https://cdn/cat.png"}
+
+    entry = StarredMessages.get_by_message("200")
+    assert entry.media_url == "https://cdn/cat.png"
+    assert entry.media_type == "image"
+  end
+
+  test "links a video attachment as an embed field" do
+    stub_message(2, attachments: [%{filename: "clip.mp4", url: "https://cdn/clip.mp4"}])
+
+    assert :ok = Definition.handle_event(event(:reaction_added), @config)
+
+    assert_received {:posted, 555, %{embeds: [embed]}}
+    assert Enum.any?(embed.fields, &(&1.name == "🎥 Video"))
+    assert StarredMessages.get_by_message("200").media_type == "video"
+  end
+
+  test "falls back to an embed image such as a linked gif" do
+    stub_message(2, embeds: [%{image: %{url: "https://tenor/x.gif"}}])
+
+    assert :ok = Definition.handle_event(event(:reaction_added), @config)
+
+    assert_received {:posted, 555, %{embeds: [embed]}}
+    assert embed.image == %{url: "https://tenor/x.gif"}
+    assert StarredMessages.get_by_message("200").media_url == "https://tenor/x.gif"
   end
 end

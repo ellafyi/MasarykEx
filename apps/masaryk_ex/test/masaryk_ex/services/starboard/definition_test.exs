@@ -141,13 +141,16 @@ defmodule MasarykEx.Services.Starboard.DefinitionTest do
     assert entry.media_type == "image"
   end
 
-  test "links a video attachment as an embed field" do
-    stub_message(2, attachments: [%{filename: "clip.mp4", url: "https://cdn/clip.mp4"}])
+  test "names a video attachment as the message text" do
+    stub_message(2,
+      attachments: [%{filename: "clip.mp4", url: "https://cdn/path/clip.mp4?ex=abc"}]
+    )
 
     assert :ok = Definition.handle_event(event(:reaction_added), @config)
 
-    assert_received {:posted, 555, %{embeds: [embed]}}
-    assert Enum.any?(embed.fields, &(&1.name == "🎥 Video"))
+    assert_received {:posted, 555, payload}
+    assert payload.content == "clip.mp4"
+    refute Enum.any?(payload.embeds |> hd() |> Map.get(:fields), &(&1.name == "🎥 Video"))
     assert StarredMessages.get_by_message("200").media_type == "video"
   end
 

@@ -110,9 +110,9 @@ defmodule MasarykEx.Adapters.Discord.Outbound do
   def count_for_emoji(_message, _emoji_name), do: 0
 
   @doc """
-  Build the Discord embed payload for a starboard post. Images and gifs are
-  inlined in the embed; an uploaded video can't play inside one, so it's linked
-  as a field instead.
+  Build the Discord post payload (embed plus optional content) for a starboard
+  entry. Images and gifs are inlined in the embed; an uploaded video can't play
+  inside one, so its filename becomes the message text instead.
   """
   @spec starboard_embed(map()) :: map()
   def starboard_embed(attrs) do
@@ -124,27 +124,29 @@ defmodule MasarykEx.Adapters.Discord.Outbound do
         fields: [%{name: "Source", value: "[Jump to message](#{jump_url(attrs)})", inline: true}],
         footer: %{text: "#{attrs[:emoji]} #{attrs[:reaction_count]}"}
       }
-      |> put_media(attrs)
+      |> put_image(attrs)
       |> Map.reject(fn {_k, v} -> is_nil(v) end)
 
-    %{embeds: [embed]}
+    put_content(%{embeds: [embed]}, attrs)
   end
 
-  defp put_media(embed, %{media_url: url, media_type: type})
+  defp put_image(embed, %{media_url: url, media_type: type})
        when is_binary(url) and type in ["image", :image] do
     Map.put(embed, :image, %{url: url})
   end
 
-  defp put_media(embed, %{media_url: url, media_type: type})
+  defp put_image(embed, _attrs), do: embed
+
+  defp put_content(payload, %{media_url: url, media_type: type})
        when is_binary(url) and type in ["video", :video] do
-    Map.update!(
-      embed,
-      :fields,
-      &(&1 ++ [%{name: "🎥 Video", value: "[Watch](#{url})", inline: true}])
-    )
+    Map.put(payload, :content, media_filename(url))
   end
 
-  defp put_media(embed, _attrs), do: embed
+  defp put_content(payload, _attrs), do: payload
+
+  defp media_filename(url) do
+    url |> URI.parse() |> Map.get(:path) |> to_string() |> Path.basename()
+  end
 
   @doc "Permalink to the source message."
   @spec jump_url(map()) :: String.t()

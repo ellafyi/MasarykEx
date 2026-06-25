@@ -1,0 +1,13 @@
+# Keep the Docker build context small and reproducible.
+_build
+deps
+.git
+.github
+.elixir_ls
+.kamal
+doc
+tmp
+.env
+*.tar
+*.ez
+erl_crash.dump

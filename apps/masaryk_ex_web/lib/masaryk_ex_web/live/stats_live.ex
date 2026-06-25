@@ -1,6 +1,8 @@
 defmodule MasarykExWeb.Live.StatsLive do
   use Phoenix.LiveView
 
+  import MasarykExWeb.Components
+
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(MasarykEx.PubSub, "stats")
@@ -42,19 +44,8 @@ defmodule MasarykExWeb.Live.StatsLive do
 
   def render(assigns) do
     ~H"""
-    <div style="font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px;">
-      <nav style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; font-size: 0.9rem;">
-        <div>
-          <span style="font-weight: bold;">Stats</span>
-          <span style="color: #ccc; margin: 0 8px;">·</span>
-          <a href="/controls" style="color: #5865F2; text-decoration: none;">Controls</a>
-        </div>
-        <div style="color: #999;">
-          Signed in as <strong><%= @current_user.username %></strong>
-          <span style="color: #ccc; margin: 0 8px;">·</span>
-          <a href="/logout" style="color: #5865F2; text-decoration: none;">Log out</a>
-        </div>
-      </nav>
+    <.page>
+      <.nav active={:stats} current_user={@current_user} />
 
       <h1 style="font-size: 1.5rem; margin-bottom: 24px;">Bot Stats</h1>
 
@@ -86,7 +77,7 @@ defmodule MasarykExWeb.Live.StatsLive do
           </table>
         <% end %>
       </section>
-    </div>
+    </.page>
     """
   end
 end

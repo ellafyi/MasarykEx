@@ -1,6 +1,8 @@
 defmodule MasarykExWeb.Live.ControlsLive do
   use Phoenix.LiveView
 
+  import MasarykExWeb.Components
+
   alias MasarykEx.Controls
 
   def mount(_params, _session, socket) do
@@ -25,19 +27,8 @@ defmodule MasarykExWeb.Live.ControlsLive do
 
   def render(assigns) do
     ~H"""
-    <div style="font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px;">
-      <nav style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; font-size: 0.9rem;">
-        <div>
-          <a href="/stats" style="color: #5865F2; text-decoration: none;">Stats</a>
-          <span style="color: #ccc; margin: 0 8px;">·</span>
-          <span style="font-weight: bold;">Controls</span>
-        </div>
-        <div style="color: #999;">
-          Signed in as <strong><%= @current_user.username %></strong>
-          <span style="color: #ccc; margin: 0 8px;">·</span>
-          <a href="/logout" style="color: #5865F2; text-decoration: none;">Log out</a>
-        </div>
-      </nav>
+    <.page>
+      <.nav active={:controls} current_user={@current_user} />
 
       <h1 style="font-size: 1.5rem; margin-bottom: 8px;">Command Controls</h1>
       <p style="color: #666; margin-top: 0; margin-bottom: 24px;">
@@ -71,7 +62,7 @@ defmodule MasarykExWeb.Live.ControlsLive do
           <% end %>
         </tbody>
       </table>
-    </div>
+    </.page>
     """
   end
 end

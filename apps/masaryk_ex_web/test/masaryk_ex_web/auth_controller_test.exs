@@ -48,6 +48,7 @@ defmodule MasarykExWeb.AuthControllerTest do
         |> get("/auth/discord/callback", %{"code" => "c", "state" => "s"})
 
       assert conn.status == 403
+      assert html_response(conn, 403) =~ "Access denied"
       assert get_session(conn, :user_id) == nil
     end
 
@@ -65,6 +66,11 @@ defmodule MasarykExWeb.AuthControllerTest do
       assert get_session(conn, :user_id) == "42"
       assert get_session(conn, :oauth_state) == nil
     end
+  end
+
+  test "GET /login renders the sign-in page", %{conn: conn} do
+    conn = get(conn, "/login")
+    assert html_response(conn, 200) =~ "Sign in with Discord"
   end
 
   test "GET /auth/discord redirects to Discord and sets a state", %{conn: conn} do

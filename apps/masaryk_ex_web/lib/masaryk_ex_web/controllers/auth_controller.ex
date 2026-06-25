@@ -19,7 +19,7 @@ defmodule MasarykExWeb.AuthController do
   alias MasarykExWeb.Auth
 
   def login(conn, _params) do
-    html(conn, login_page())
+    render_page(conn, :login)
   end
 
   def request(conn, _params) do
@@ -60,42 +60,15 @@ defmodule MasarykExWeb.AuthController do
   defp forbidden(conn) do
     conn
     |> put_status(:forbidden)
-    |> html(forbidden_page())
+    |> render_page(:forbidden)
   end
 
-  defp login_page do
-    page("""
-    <h1>MasarykEx Dashboard</h1>
-    <p>Sign in with Discord to view the bot stats.</p>
-    <a class="btn" href="/auth/discord">Sign in with Discord</a>
-    """)
-  end
-
-  defp forbidden_page do
-    page("""
-    <h1>Access denied</h1>
-    <p>Your Discord account doesn't have the role required to view this dashboard.</p>
-    <a class="btn" href="/login">Back to sign in</a>
-    """)
-  end
-
-  defp page(inner) do
-    """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="utf-8"/>
-      <meta name="viewport" content="width=device-width, initial-scale=1"/>
-      <title>MasarykEx Dashboard</title>
-      <style>
-        body { font-family: sans-serif; max-width: 480px; margin: 80px auto; padding: 0 16px; text-align: center; }
-        h1 { font-size: 1.5rem; }
-        p { color: #555; }
-        .btn { display: inline-block; margin-top: 16px; padding: 10px 20px; background: #5865F2; color: #fff; border-radius: 6px; text-decoration: none; font-weight: bold; }
-      </style>
-    </head>
-    <body>#{inner}</body>
-    </html>
-    """
+  # Render a standalone auth page (MasarykExWeb.AuthHTML) with no layouts, so the
+  # live root layout's socket script stays off these non-live pages.
+  defp render_page(conn, template) do
+    conn
+    |> put_root_layout(html: false)
+    |> put_layout(html: false)
+    |> render(template)
   end
 end

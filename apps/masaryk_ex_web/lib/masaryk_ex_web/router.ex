@@ -32,6 +32,7 @@ defmodule MasarykExWeb.Router do
     live_session :authenticated, on_mount: {MasarykExWeb.Auth, :ensure_authorized} do
       live "/stats", MasarykExWeb.Live.StatsLive
       live "/controls", MasarykExWeb.Live.ControlsLive
+      live "/starboard", MasarykExWeb.Live.StarboardLive
     end
 
     live_dashboard "/dashboard",

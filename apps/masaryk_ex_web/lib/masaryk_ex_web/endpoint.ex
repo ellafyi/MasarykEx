@@ -15,6 +15,9 @@ defmodule MasarykExWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: false
 
+  # Liveness probe for the Kamal proxy; answered before session/router work.
+  plug :health_check
+
   plug Plug.Static, at: "/assets/phoenix", from: {:phoenix, "priv/static"}
   plug Plug.Static, at: "/assets/lv", from: {:phoenix_live_view, "priv/static"}
 
@@ -27,4 +30,10 @@ defmodule MasarykExWeb.Endpoint do
   plug Plug.Session, @session_options
 
   plug MasarykExWeb.Router
+
+  defp health_check(%Plug.Conn{request_path: "/up"} = conn, _opts) do
+    conn |> Plug.Conn.send_resp(200, "OK") |> Plug.Conn.halt()
+  end
+
+  defp health_check(conn, _opts), do: conn
 end

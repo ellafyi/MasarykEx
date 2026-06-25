@@ -63,9 +63,20 @@ if role_id = System.get_env("STATS_ROLE_ID") do
 end
 
 if secret = System.get_env("SECRET_KEY_BASE") do
+  port = String.to_integer(System.get_env("PORT", "4000"))
+
+  # Behind the Kamal/Cloudflare TLS proxy a PHX_HOST means we're served over https
+  # on 443 (so generated URLs and LiveView origin checks are correct); without it
+  # (e.g. local docker-compose) fall back to plain http on PORT.
+  url =
+    case System.get_env("PHX_HOST") do
+      nil -> [host: "localhost", port: port]
+      host -> [host: host, scheme: "https", port: 443]
+    end
+
   config :masaryk_ex_web, MasarykExWeb.Endpoint,
-    http: [ip: {0, 0, 0, 0}, port: String.to_integer(System.get_env("PORT", "4000"))],
-    url: [host: System.get_env("PHX_HOST", "localhost")],
+    http: [ip: {0, 0, 0, 0}, port: port],
+    url: url,
     secret_key_base: secret,
     server: true
 end

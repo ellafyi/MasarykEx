@@ -37,7 +37,7 @@ defmodule MasarykEx.Data.Starboard.StarredMessages do
 
     Repo.all(
       from s in StarredMessage,
-        order_by: [desc: s.inserted_at],
+        order_by: [desc: s.inserted_at, desc: s.id],
         limit: ^limit,
         offset: ^offset
     )

@@ -82,7 +82,7 @@ defmodule MasarykExWeb.Live.StarboardLive do
         apply immediately, no restart.
       </p>
 
-      <form phx-submit="save_settings" style="margin-bottom: 32px; padding: 16px; background: #f9f9f9; border-radius: 4px;">
+      <form id="starboard-settings" phx-submit="save_settings" style="margin-bottom: 32px; padding: 16px; background: #f9f9f9; border-radius: 4px;">
         <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;">
           <label style="display: block;">
             <div style="color: #666; font-size: 0.85rem; margin-bottom: 4px;">Reaction threshold</div>

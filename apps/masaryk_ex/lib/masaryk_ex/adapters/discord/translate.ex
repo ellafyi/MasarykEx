@@ -94,6 +94,24 @@ defmodule MasarykEx.Adapters.Discord.Translate do
     }
   end
 
+  def to_event(:MESSAGE_REACTION_REMOVE, reaction) do
+    %Event{
+      type: :reaction_removed,
+      data: %{
+        emoji_name: reaction.emoji.name,
+        message_id: maybe_string(reaction.message_id),
+        user_id: maybe_string(reaction.user_id),
+        channel_id: maybe_string(reaction.channel_id)
+      },
+      context: %Context{
+        interface: :discord,
+        user_id: maybe_string(reaction.user_id),
+        guild_id: maybe_string(reaction.guild_id),
+        channel_id: maybe_string(reaction.channel_id)
+      }
+    }
+  end
+
   def to_event(_type, _payload), do: nil
 
   # MESSAGE context-menu command (type 3): pull the resolved target message.

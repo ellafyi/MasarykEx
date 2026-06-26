@@ -40,6 +40,10 @@ defmodule MasarykEx.Backup do
   @spec total() :: non_neg_integer()
   def total, do: BackedUpMessages.total()
 
+  @doc "Approximate total archived messages (planner estimate, O(1))."
+  @spec estimated_total() :: non_neg_integer()
+  def estimated_total, do: BackedUpMessages.estimated_total()
+
   @doc "The channel currently being backfilled, or nil."
   @spec current_channel() :: BackupChannels.BackupChannel.t() | nil
   def current_channel, do: BackupChannels.next_pending()

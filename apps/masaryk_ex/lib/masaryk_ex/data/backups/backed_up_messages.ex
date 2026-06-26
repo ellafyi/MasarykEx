@@ -61,6 +61,21 @@ defmodule MasarykEx.Data.Backups.BackedUpMessages do
   @spec total() :: non_neg_integer()
   def total, do: Repo.aggregate(BackedUpMessage, :count, :id)
 
+  @doc """
+  Approximate total archived messages from planner statistics (`pg_class.reltuples`).
+  O(1) — never scans the table. `reltuples` is `-1` before the first `ANALYZE`, so
+  the estimate is clamped to `0`.
+  """
+  @spec estimated_total() :: non_neg_integer()
+  def estimated_total do
+    %{rows: [[estimate]]} =
+      Repo.query!(
+        "SELECT reltuples::bigint FROM pg_class WHERE oid = 'backed_up_messages'::regclass"
+      )
+
+    max(estimate, 0)
+  end
+
   defp base_query(opts) do
     BackedUpMessage
     |> filter_text(opts[:query])

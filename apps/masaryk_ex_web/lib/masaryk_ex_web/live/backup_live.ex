@@ -39,7 +39,11 @@ defmodule MasarykExWeb.Live.BackupLive do
   end
 
   def handle_info(:tick, socket), do: {:noreply, load_status(socket)}
-  def handle_info({:backup, _}, socket), do: {:noreply, socket |> load_status() |> load_results()}
+
+  def handle_info({:backup, :settings}, socket),
+    do: {:noreply, assign(socket, settings: Backup.settings())}
+
+  def handle_info({:backup, _}, socket), do: {:noreply, load_status(socket)}
 
   defp load_status(socket) do
     current = Backup.current_channel()
@@ -47,9 +51,13 @@ defmodule MasarykExWeb.Live.BackupLive do
     assign(socket,
       running: Backup.running?(),
       progress: Backup.progress(),
-      total_messages: Backup.total(),
+      total_messages: Backup.estimated_total(),
       current_channel: current && (current.name || current.channel_id)
     )
+  end
+
+  defp load_results(%{assigns: %{query: ""}} = socket) do
+    assign(socket, results: [], result_count: 0, page: 1, total_pages: 1)
   end
 
   defp load_results(socket) do
@@ -140,26 +148,30 @@ defmodule MasarykExWeb.Live.BackupLive do
         />
       </form>
 
-      <p style="color: #999; font-size: 0.85rem;"><%= @result_count %> match<%= if @result_count != 1, do: "es" %></p>
+      <%= if @query != "" do %>
+        <p style="color: #999; font-size: 0.85rem;"><%= @result_count %> match<%= if @result_count != 1, do: "es" %></p>
 
-      <%= for msg <- @results do %>
-        <div style="padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
-          <div style="font-size: 0.8rem; color: #999;">
-            <strong style="color: #555;"><%= msg.author_username || msg.author_id %></strong>
-            · #<%= msg.channel_id %> · <%= when_at(msg.posted_at) %>
-            <%= if msg.edited_at do %><span style="color: #faa61a;">· edited</span><% end %>
-            <%= if msg.deleted_at do %><span style="color: #ed4245;">· deleted</span><% end %>
+        <%= for msg <- @results do %>
+          <div style="padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
+            <div style="font-size: 0.8rem; color: #999;">
+              <strong style="color: #555;"><%= msg.author_username || msg.author_id %></strong>
+              · #<%= msg.channel_id %> · <%= when_at(msg.posted_at) %>
+              <%= if msg.edited_at do %><span style="color: #faa61a;">· edited</span><% end %>
+              <%= if msg.deleted_at do %><span style="color: #ed4245;">· deleted</span><% end %>
+            </div>
+            <div><%= excerpt(msg.content) %></div>
           </div>
-          <div><%= excerpt(msg.content) %></div>
-        </div>
-      <% end %>
+        <% end %>
 
-      <%= if @result_count > @per_page do %>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; font-size: 0.9rem;">
-          <button phx-click="page" phx-value-to={@page - 1} disabled={@page <= 1} style={pager_style(@page <= 1)}>← Prev</button>
-          <span style="color: #666;">Page <%= @page %> of <%= @total_pages %></span>
-          <button phx-click="page" phx-value-to={@page + 1} disabled={@page >= @total_pages} style={pager_style(@page >= @total_pages)}>Next →</button>
-        </div>
+        <%= if @result_count > @per_page do %>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; font-size: 0.9rem;">
+            <button phx-click="page" phx-value-to={@page - 1} disabled={@page <= 1} style={pager_style(@page <= 1)}>← Prev</button>
+            <span style="color: #666;">Page <%= @page %> of <%= @total_pages %></span>
+            <button phx-click="page" phx-value-to={@page + 1} disabled={@page >= @total_pages} style={pager_style(@page >= @total_pages)}>Next →</button>
+          </div>
+        <% end %>
+      <% else %>
+        <p style="color: #999; font-size: 0.85rem;">Search the archive to list messages.</p>
       <% end %>
     </.page>
     """

@@ -33,6 +33,39 @@ defmodule MasarykExWeb.BackupLiveTest do
     assert html =~ "Start"
   end
 
+  test "default render lists no archived rows and shows an empty-state hint", %{conn: conn} do
+    BackedUpMessages.upsert(%{
+      message_id: "secret",
+      channel_id: "c1",
+      author_id: "u1",
+      content: "DISTINCTIVE_NEEDLE_TEXT",
+      posted_at: ~U[2026-01-01 00:00:00Z]
+    })
+
+    {:ok, _view, html} = live(authed(conn), "/backup")
+
+    refute html =~ "DISTINCTIVE_NEEDLE_TEXT"
+    assert html =~ "Search the archive to list messages."
+  end
+
+  test "a progress broadcast refreshes status without listing archived rows", %{conn: conn} do
+    BackedUpMessages.upsert(%{
+      message_id: "secret2",
+      channel_id: "c1",
+      author_id: "u1",
+      content: "PROGRESS_NEEDLE_TEXT",
+      posted_at: ~U[2026-01-01 00:00:00Z]
+    })
+
+    {:ok, view, _html} = live(authed(conn), "/backup")
+
+    send(view.pid, {:backup, :progress})
+    html = render(view)
+
+    refute html =~ "PROGRESS_NEEDLE_TEXT"
+    assert html =~ "messages archived"
+  end
+
   test "saving the log channel persists it through the config store", %{conn: conn} do
     {:ok, view, _html} = live(authed(conn), "/backup")
 

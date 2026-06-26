@@ -13,12 +13,16 @@ defmodule MasarykEx.Services.MessageBackup.Backfiller do
   alias MasarykEx.Config
   alias MasarykEx.Config.Store
   alias MasarykEx.Core.Context
-  alias MasarykEx.Data.Backups.BackedUpMessages
+  alias MasarykEx.Data.Backups.{BackedUpMessages, BackupChannels}
   alias MasarykEx.Services.MessageBackup.{Backfill, Definition}
+
+  require Logger
 
   @topic "backup"
   @feature "MessageBackup"
   @delay 250
+  @broadcast_throttle 1_000
+  @progress_notify_throttle 60_000
 
   def start_link(_), do: GenServer.start_link(__MODULE__, nil, name: __MODULE__)
 
@@ -38,7 +42,7 @@ defmodule MasarykEx.Services.MessageBackup.Backfiller do
   def init(_) do
     running = persisted_running?()
     if running, do: send(self(), :resume)
-    {:ok, %{running: running}}
+    {:ok, %{running: running, last_broadcast: 0, last_notify: 0}}
   end
 
   @impl true
@@ -48,7 +52,7 @@ defmodule MasarykEx.Services.MessageBackup.Backfiller do
     notify("📦 Message backup started.")
     schedule()
     broadcast()
-    {:noreply, %{state | running: true}}
+    {:noreply, %{state | running: true, last_broadcast: now(), last_notify: now()}}
   end
 
   def handle_cast(:pause, state) do
@@ -63,8 +67,10 @@ defmodule MasarykEx.Services.MessageBackup.Backfiller do
   @impl true
   def handle_info(:resume, state) do
     Backfill.inventory()
+    notify("▶️ Resuming message backup.")
+    broadcast()
     schedule()
-    {:noreply, state}
+    {:noreply, %{state | last_broadcast: now(), last_notify: now()}}
   end
 
   def handle_info(:work, %{running: false} = state), do: {:noreply, state}
@@ -73,25 +79,58 @@ defmodule MasarykEx.Services.MessageBackup.Backfiller do
     case Backfill.step() do
       :done ->
         persist(false)
-        notify("✅ Message backup complete (#{BackedUpMessages.total()} messages archived).")
+
+        notify(
+          "✅ Message backup complete (~#{BackedUpMessages.estimated_total()} messages archived)."
+        )
+
         broadcast()
-        {:noreply, %{state | running: false}}
+        {:noreply, %{state | running: false, last_broadcast: now(), last_notify: now()}}
 
       {:channel_done, channel} ->
         notify("✔️ Backed up ##{channel.name || channel.channel_id}.")
         broadcast()
         schedule()
-        {:noreply, state}
+        {:noreply, %{state | last_broadcast: now(), last_notify: now()}}
 
       _progressed_or_error ->
-        broadcast()
         schedule()
-        {:noreply, state}
+        {:noreply, throttled_progress(state)}
     end
   end
 
   defp schedule, do: Process.send_after(self(), :work, @delay)
   defp broadcast, do: Phoenix.PubSub.broadcast(MasarykEx.PubSub, @topic, {:backup, :progress})
+
+  defp throttled_progress(state) do
+    now = now()
+    state |> maybe_broadcast(now) |> maybe_notify_progress(now)
+  end
+
+  defp maybe_broadcast(state, now) do
+    if now - state.last_broadcast >= @broadcast_throttle do
+      broadcast()
+      %{state | last_broadcast: now}
+    else
+      state
+    end
+  end
+
+  defp maybe_notify_progress(state, now) do
+    if now - state.last_notify >= @progress_notify_throttle do
+      %{total: total, done: done} = BackupChannels.progress()
+
+      notify(
+        "📦 Backing up… #{done}/#{total} channels, ~#{BackedUpMessages.estimated_total()} messages archived."
+      )
+
+      %{state | last_notify: now}
+    else
+      state
+    end
+  end
+
+  defp now, do: System.monotonic_time(:millisecond)
 
   defp persist(running), do: Store.put(@feature, "running", "global", running)
 
@@ -101,10 +140,25 @@ defmodule MasarykEx.Services.MessageBackup.Backfiller do
 
   defp notify(text) do
     case log_channel() do
-      nil -> :ok
-      channel -> Outbound.create_message(channel, %{content: text})
+      nil ->
+        :ok
+
+      channel ->
+        case Outbound.create_message(channel, %{content: text}) do
+          {:ok, _} -> :ok
+          other -> Logger.warning("[Backfiller] log post to #{channel} failed: #{inspect(other)}")
+        end
     end
   end
 
-  defp log_channel, do: Config.get(Definition, :channel_id, %Context{interface: :discord})
+  defp log_channel do
+    Config.get(Definition, :channel_id, %Context{interface: :discord, guild_id: guild_id()})
+  end
+
+  defp guild_id do
+    case Application.get_env(:masaryk_ex, :discord_guild_id) do
+      nil -> nil
+      id -> to_string(id)
+    end
+  end
 end

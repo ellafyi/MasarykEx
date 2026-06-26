@@ -50,6 +50,14 @@ defmodule MasarykEx.Data.Backups.BackedUpMessagesTest do
     assert BackedUpMessages.count([]) == 3
   end
 
+  test "estimated_total/0 returns a non-negative planner estimate" do
+    # reltuples is planner-dependent (and 0/stale inside the sandbox transaction),
+    # so assert only that it is a clamped non-negative integer — never equality.
+    estimate = BackedUpMessages.estimated_total()
+    assert is_integer(estimate)
+    assert estimate >= 0
+  end
+
   test "mark_edited updates content; mark_deleted soft-deletes" do
     upsert(message_id: "e1", content: "original")
 

@@ -7,25 +7,25 @@
 # Secret VALUES come from the environment via .kamal/secrets (never committed here).
 service: masaryk_ex
 # `registry.server` (ghcr.io) is prepended automatically — don't repeat it here.
-image: <github-user>/masaryk_ex
+image: ellafyi/masaryk_ex
 
 servers:
   web:
     hosts:
-      - <VPS_IP>
+      - 159.69.245.249
     # Run migrations on boot, then start the release (single instance → safe).
     cmd: sh -c 'bin/masaryk_ex eval "MasarykEx.Release.migrate()" && bin/masaryk_ex start'
 
 proxy:
   ssl: true
-  host: masaryk.example.com
+  host: masaryk.ella.gy
   app_port: 4000
   healthcheck:
     path: /up
 
 registry:
   server: ghcr.io
-  username: <github-user>
+  username: ellafyi
   password:
     - KAMAL_REGISTRY_PASSWORD
 
@@ -36,11 +36,11 @@ env:
   clear:
     PORT: 4000
     POOL_SIZE: 15
-    PHX_HOST: masaryk.example.com
-    DISCORD_REDIRECT_URI: https://masaryk.example.com/auth/discord/callback
-    DISCORD_GUILD_ID: "<guild_id>"
-    DISCORD_CLIENT_ID: "<client_id>"
-    STATS_ROLE_ID: "<role_id>"
+    PHX_HOST: masaryk.ella.gy
+    DISCORD_REDIRECT_URI: https://masaryk.ella.gy/auth/discord/callback
+    DISCORD_GUILD_ID: "486184376544002073"
+    DISCORD_CLIENT_ID: "1510204580053651467"
+    STATS_ROLE_ID: "504237720965480450"
   secret:
     - SECRET_KEY_BASE
     - DATABASE_URL
@@ -50,7 +50,7 @@ env:
 accessories:
   db:
     image: postgres:16-alpine
-    host: <VPS_IP>
+    host: 159.69.245.249
     # No published port: the app reaches Postgres over Kamal's private network at
     # the accessory's container name `masaryk_ex-db` (see DATABASE_URL).
     env:

@@ -12,6 +12,6 @@ defmodule MasarykEx.Commands.Algo.Definition do
 
   @impl true
   def run(_request) do
-    Response.text("Test")
+    Response.text("kys")
   end
 end

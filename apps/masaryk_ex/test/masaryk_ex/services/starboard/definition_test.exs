@@ -16,6 +16,7 @@ defmodule MasarykEx.Services.Starboard.DefinitionTest do
       Application.delete_env(:masaryk_ex, :starboard_message_fetcher)
       Application.delete_env(:masaryk_ex, :starboard_message_poster)
       Application.delete_env(:masaryk_ex, :starboard_message_editor)
+      Application.delete_env(:masaryk_ex, :starboard_guild_emojis)
     end)
 
     # Poster/editor record their calls so tests can assert what was sent.
@@ -37,7 +38,11 @@ defmodule MasarykEx.Services.Starboard.DefinitionTest do
 
     message = %{
       content: Keyword.get(opts, :content, "hello world"),
-      author: %{username: Keyword.get(opts, :author, "alice")},
+      author: %{
+        username: Keyword.get(opts, :author, "alice"),
+        id: Keyword.get(opts, :author_id),
+        avatar: Keyword.get(opts, :author_avatar)
+      },
       reactions: [%{emoji: %{name: emoji}, count: count}],
       attachments: Keyword.get(opts, :attachments, []),
       embeds: Keyword.get(opts, :embeds, [])
@@ -162,5 +167,59 @@ defmodule MasarykEx.Services.Starboard.DefinitionTest do
     assert_received {:posted, 555, %{embeds: [embed]}}
     assert embed.image == %{url: "https://tenor/x.gif"}
     assert StarredMessages.get_by_message("200").media_url == "https://tenor/x.gif"
+  end
+
+  test "persists and renders avatar + custom emoji, and re-renders them on edit" do
+    Application.put_env(:masaryk_ex, :starboard_guild_emojis, fn _guild ->
+      {:ok, [%{id: 123, name: "blob", animated: false}]}
+    end)
+
+    stub_message(2, emoji: "blob", author_id: 42, author_avatar: "abc")
+
+    assert :ok =
+             Definition.handle_event(
+               event(:reaction_added, %{
+                 emoji_name: "blob",
+                 emoji_id: "123",
+                 emoji_animated: false
+               }),
+               @config
+             )
+
+    assert_received {:posted, 555, %{embeds: [embed]}}
+
+    assert embed.author == %{
+             name: "alice",
+             icon_url: "https://cdn.discordapp.com/avatars/42/abc.png"
+           }
+
+    assert embed.footer.text == "<:blob:123> 2"
+
+    entry = StarredMessages.get_by_message("200")
+    assert entry.emoji_id == "123"
+    assert entry.emoji_animated == false
+    assert entry.author_avatar_url == "https://cdn.discordapp.com/avatars/42/abc.png"
+
+    # The edit path re-renders the snapshot from the stored row.
+    stub_message(5, emoji: "blob", author_id: 42, author_avatar: "abc")
+
+    assert :ok =
+             Definition.handle_event(
+               event(:reaction_added, %{
+                 emoji_name: "blob",
+                 emoji_id: "123",
+                 emoji_animated: false
+               }),
+               @config
+             )
+
+    assert_received {:edited, 555, 999, %{embeds: [edited]}}
+
+    assert edited.author == %{
+             name: "alice",
+             icon_url: "https://cdn.discordapp.com/avatars/42/abc.png"
+           }
+
+    assert edited.footer.text == "<:blob:123> 5"
   end
 end

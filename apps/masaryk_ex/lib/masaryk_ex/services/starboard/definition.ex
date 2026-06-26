@@ -78,7 +78,10 @@ defmodule MasarykEx.Services.Starboard.Definition do
       emoji: data.emoji_name,
       reaction_count: count,
       media_url: media && media.url,
-      media_type: media && Atom.to_string(media.type)
+      media_type: media && Atom.to_string(media.type),
+      emoji_id: Map.get(data, :emoji_id),
+      emoji_animated: Map.get(data, :emoji_animated, false),
+      author_avatar_url: Outbound.author_avatar_url(message)
     }
 
     with {:ok, posted} <- Outbound.create_message(channel_id, Outbound.starboard_embed(attrs)),
@@ -103,7 +106,10 @@ defmodule MasarykEx.Services.Starboard.Definition do
         emoji: entry.emoji,
         reaction_count: count,
         media_url: entry.media_url,
-        media_type: entry.media_type
+        media_type: entry.media_type,
+        emoji_id: entry.emoji_id,
+        emoji_animated: entry.emoji_animated,
+        author_avatar_url: entry.author_avatar_url
       })
 
     if entry.starboard_message_id do

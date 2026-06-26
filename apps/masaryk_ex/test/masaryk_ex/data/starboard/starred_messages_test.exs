@@ -56,6 +56,22 @@ defmodule MasarykEx.Data.Starboard.StarredMessagesTest do
     assert second.message_id == "m2"
   end
 
+  test "casts and persists emoji_id, emoji_animated and author_avatar_url" do
+    {:ok, entry} =
+      StarredMessages.create(
+        attrs(%{
+          emoji_id: "123",
+          emoji_animated: true,
+          author_avatar_url: "https://cdn.discordapp.com/avatars/42/abc.png"
+        })
+      )
+
+    fetched = StarredMessages.get_by_message(entry.message_id)
+    assert fetched.emoji_id == "123"
+    assert fetched.emoji_animated == true
+    assert fetched.author_avatar_url == "https://cdn.discordapp.com/avatars/42/abc.png"
+  end
+
   defp errors_on(changeset, field) do
     changeset.errors
     |> Keyword.get_values(field)

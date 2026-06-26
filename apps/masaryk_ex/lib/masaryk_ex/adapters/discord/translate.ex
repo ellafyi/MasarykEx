@@ -108,6 +108,8 @@ defmodule MasarykEx.Adapters.Discord.Translate do
       type: :reaction_added,
       data: %{
         emoji_name: reaction.emoji.name,
+        emoji_id: maybe_string(reaction.emoji.id),
+        emoji_animated: reaction.emoji.animated == true,
         message_id: maybe_string(reaction.message_id),
         user_id: maybe_string(reaction.user_id),
         channel_id: maybe_string(reaction.channel_id)
@@ -126,6 +128,8 @@ defmodule MasarykEx.Adapters.Discord.Translate do
       type: :reaction_removed,
       data: %{
         emoji_name: reaction.emoji.name,
+        emoji_id: maybe_string(reaction.emoji.id),
+        emoji_animated: reaction.emoji.animated == true,
         message_id: maybe_string(reaction.message_id),
         user_id: maybe_string(reaction.user_id),
         channel_id: maybe_string(reaction.channel_id)

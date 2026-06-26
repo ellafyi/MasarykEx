@@ -118,17 +118,80 @@ defmodule MasarykEx.Adapters.Discord.Outbound do
   def starboard_embed(attrs) do
     embed =
       %{
-        author: attrs[:author] && %{name: attrs[:author]},
+        author: author_block(attrs),
         description: blank_to_nil(attrs[:content]),
         color: @gold,
-        fields: [%{name: "Source", value: "[Jump to message](#{jump_url(attrs)})", inline: true}],
-        footer: %{text: "#{attrs[:emoji]} #{attrs[:reaction_count]}"}
+        fields: [
+          %{
+            name: "Source",
+            value: "<##{attrs[:channel_id]}> · [Jump to message](#{jump_url(attrs)})",
+            inline: true
+          }
+        ],
+        footer: %{text: "#{render_emoji(attrs)} #{attrs[:reaction_count]}"}
       }
       |> put_image(attrs)
       |> Map.reject(fn {_k, v} -> is_nil(v) end)
 
     put_content(%{embeds: [embed]}, attrs)
   end
+
+  defp author_block(%{author: author} = attrs) when is_binary(author) do
+    maybe_put(%{name: author}, :icon_url, attrs[:author_avatar_url])
+  end
+
+  defp author_block(_attrs), do: nil
+
+  @doc """
+  Full CDN avatar URL for a fetched message's author, or `nil` when the author
+  has no custom avatar. Works for both `%Nostrum.Struct.User{}` and the plain-map
+  fixtures (`%{id, avatar}`).
+  """
+  @spec author_avatar_url(map()) :: String.t() | nil
+  def author_avatar_url(%{author: %{id: id, avatar: hash}})
+      when not is_nil(id) and is_binary(hash) do
+    ext = if String.starts_with?(hash, "a_"), do: "gif", else: "png"
+    "https://cdn.discordapp.com/avatars/#{id}/#{hash}.#{ext}"
+  end
+
+  def author_avatar_url(_message), do: nil
+
+  @doc """
+  Render the triggering reaction for the footer. A unicode emoji passes through
+  as its name; a this-guild custom emoji becomes `<:name:id>` (or `<a:name:id>`
+  when animated); a custom emoji from another guild falls back to text `:name:`.
+  """
+  @spec render_emoji(map()) :: String.t()
+  def render_emoji(attrs) do
+    name = attrs[:emoji]
+
+    case attrs[:emoji_id] do
+      nil ->
+        name
+
+      id ->
+        if local_emoji?(attrs[:guild_id], id) do
+          prefix = if attrs[:emoji_animated], do: "a", else: ""
+          "<#{prefix}:#{name}:#{id}>"
+        else
+          ":#{name}:"
+        end
+    end
+  end
+
+  defp local_emoji?(nil, _id), do: false
+
+  defp local_emoji?(guild_id, id) do
+    with {:ok, guild} <- to_id(guild_id),
+         {:ok, emojis} <- guild_emojis().(guild) do
+      Enum.any?(emojis, fn emoji -> to_string(emoji.id) == id end)
+    else
+      _ -> false
+    end
+  end
+
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp put_image(embed, %{media_url: url, media_type: type})
        when is_binary(url) and type in ["image", :image] do
@@ -183,5 +246,9 @@ defmodule MasarykEx.Adapters.Discord.Outbound do
 
   defp editor do
     Application.get_env(:masaryk_ex, :starboard_message_editor, &Nostrum.Api.Message.edit/3)
+  end
+
+  defp guild_emojis do
+    Application.get_env(:masaryk_ex, :starboard_guild_emojis, &Nostrum.Api.Guild.emojis/1)
   end
 end

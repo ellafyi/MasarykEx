@@ -18,6 +18,7 @@ services:
             retries: 5
 
     app:
+        network_mode: "host"
         build:
             context: .
             dockerfile: Dockerfile.dev
@@ -31,6 +32,8 @@ services:
             PHX_LIVE_RELOAD_ENABLED: "true"
         ports:
             - "4000:4000"
+            - "4369:4369" # EPMD
+            - "9001-9010:9001-9010" # Distribution ports
         volumes:
             - .:/app
             - /app/_build
@@ -45,7 +48,7 @@ services:
               mix deps.get &&
               mix ecto.create &&
               mix ecto.migrate &&
-              mix phx.server
+              iex --name masaryk@app --cookie development_cookie -S mix phx.server # remote attach with `docker-compose exec app iex --sname masaryk2 --cookie development_cookie --remsh masaryk@app`
             "
         stdin_open: true
         tty: true

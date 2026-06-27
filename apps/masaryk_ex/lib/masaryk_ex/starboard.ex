@@ -1,56 +1,78 @@
 defmodule MasarykEx.Starboard do
   @moduledoc """
-  Dashboard-facing facade over the starboard: reads and writes the service's
-  threshold/channel config (through the same `Config` + `Config.Store` mechanism
-  the `/config` command uses) and lists persisted starred messages.
+  Dashboard-facing facade over the starboard: CRUD for the per-guild boards and
+  a paged view of persisted starred messages.
 
-  Settings reads resolve through the ETS-cached `Config`; writes go through
-  `Config.Store` at the global scope, so the service picks them up on the next
-  event with no restart.
+  Boards live in the `starboards` table scoped to the configured guild
+  (`:discord_guild_id`). The running service reloads them on the next event with
+  no restart, and every mutation broadcasts `{:starboard, :config}` so open
+  dashboards refresh live. Board attrs are atom-keyed maps; `guild_id` is
+  injected from the app env on create.
   """
 
-  alias MasarykEx.Config
-  alias MasarykEx.Config.Store
-  alias MasarykEx.Core.Context
-  alias MasarykEx.Data.Starboard.{StarredMessage, StarredMessages}
-  alias MasarykEx.Services.Starboard.Definition
+  alias MasarykEx.Data.Starboard.{Starboard, Starboards, StarredMessage, StarredMessages}
 
   @topic "starboard"
-  @web_context %Context{interface: :web}
 
-  @type settings :: %{threshold: integer(), channel_id: String.t() | nil}
+  @doc "All boards for the configured guild, ordered by position then id."
+  @spec list_starboards() :: [Starboard.t()]
+  def list_starboards, do: Starboards.for_guild(guild_id())
 
-  @doc "Current starboard settings (threshold + target channel)."
-  @spec settings() :: settings()
-  def settings do
-    %{
-      threshold: Config.get(Definition, :threshold, @web_context),
-      channel_id: Config.get(Definition, :channel_id, @web_context)
-    }
+  @doc "Fetch a board by id, or nil."
+  @spec get_starboard(integer() | String.t()) :: Starboard.t() | nil
+  def get_starboard(id), do: Starboards.get(id)
+
+  @doc "Create a board for the configured guild and broadcast the change."
+  @spec create_starboard(map()) :: {:ok, Starboard.t()} | {:error, Ecto.Changeset.t()}
+  def create_starboard(attrs) do
+    attrs
+    |> Map.put(:guild_id, guild_id())
+    |> Starboards.create()
+    |> broadcast_config()
   end
 
-  @doc "Persist starboard settings globally and broadcast the change."
-  @spec update_settings(%{threshold: integer(), channel_id: String.t() | nil}) ::
-          :ok | {:error, term()}
-  def update_settings(%{threshold: threshold, channel_id: channel_id}) do
-    feature = inspect(Definition)
-
-    with :ok <- Store.put(feature, "threshold", "global", threshold),
-         :ok <- Store.put(feature, "channel_id", "global", channel_id) do
-      Phoenix.PubSub.broadcast(MasarykEx.PubSub, @topic, {:starboard, :updated})
-      :ok
-    end
+  @doc "Update a board and broadcast the change."
+  @spec update_starboard(Starboard.t(), map()) ::
+          {:ok, Starboard.t()} | {:error, Ecto.Changeset.t()}
+  def update_starboard(%Starboard{} = board, attrs) do
+    board
+    |> Starboards.update(attrs)
+    |> broadcast_config()
   end
 
-  @doc "A page of starred messages, newest first."
+  @doc "Delete a board and broadcast the change."
+  @spec delete_starboard(Starboard.t()) :: {:ok, Starboard.t()} | {:error, Ecto.Changeset.t()}
+  def delete_starboard(%Starboard{} = board) do
+    board
+    |> Starboards.delete()
+    |> broadcast_config()
+  end
+
+  @doc "A page of starred messages, newest first; optional `:starboard_id` filter."
   @spec list(keyword()) :: [StarredMessage.t()]
   def list(opts \\ []), do: StarredMessages.list(opts)
 
-  @doc "Total number of starred messages."
-  @spec count() :: non_neg_integer()
-  def count, do: StarredMessages.count()
+  @doc "Number of starred messages, optionally scoped by `:starboard_id`."
+  @spec count(keyword()) :: non_neg_integer()
+  def count(opts \\ []), do: StarredMessages.count(opts)
 
   @doc "PubSub topic LiveViews subscribe to for live starboard updates."
   @spec topic() :: String.t()
   def topic, do: @topic
+
+  @doc "The configured Discord guild id as a string, or nil when unset."
+  @spec guild_id() :: String.t() | nil
+  def guild_id do
+    case Application.get_env(:masaryk_ex, :discord_guild_id) do
+      nil -> nil
+      id -> to_string(id)
+    end
+  end
+
+  defp broadcast_config({:ok, _} = result) do
+    Phoenix.PubSub.broadcast(MasarykEx.PubSub, @topic, {:starboard, :config})
+    result
+  end
+
+  defp broadcast_config(other), do: other
 end

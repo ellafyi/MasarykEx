@@ -1,78 +1,132 @@
 defmodule MasarykExWeb.StarboardLiveTest do
   use MasarykExWeb.ConnCase
 
-  alias MasarykEx.Config.Store
-  alias MasarykEx.Data.Starboard.StarredMessages
-  alias MasarykEx.Services.Starboard.Definition
-
-  @feature inspect(Definition)
+  alias MasarykEx.Data.Starboard.{Starboards, StarredMessages}
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(MasarykEx.Repo)
     # The connected LiveView runs in its own process; share the connection.
     Ecto.Adapters.SQL.Sandbox.mode(MasarykEx.Repo, {:shared, self()})
+
+    prev = Application.get_env(:masaryk_ex, :discord_guild_id)
+    Application.put_env(:masaryk_ex, :discord_guild_id, 9)
+
+    on_exit(fn ->
+      case prev do
+        nil -> Application.delete_env(:masaryk_ex, :discord_guild_id)
+        val -> Application.put_env(:masaryk_ex, :discord_guild_id, val)
+      end
+    end)
+
     :ok
   end
 
   defp authed(conn), do: init_test_session(conn, %{user_id: "42", username: "ok"})
 
+  defp create_board(overrides) do
+    {:ok, board} =
+      Starboards.create(
+        Map.merge(%{guild_id: "9", name: "Board", target_channel_id: "900"}, overrides)
+      )
+
+    board
+  end
+
   test "redirects to /login when not authenticated", %{conn: conn} do
     assert {:error, {:redirect, %{to: "/login"}}} = live(conn, "/starboard")
   end
 
-  test "renders settings and an empty state for an authenticated user", %{conn: conn} do
+  test "renders the page and lists configured boards", %{conn: conn} do
+    create_board(%{name: "Memes", target_channel_id: "900", include_channel_ids: ["111"]})
+
     {:ok, _view, html} = live(authed(conn), "/starboard")
 
     assert html =~ "Starboard"
     assert html =~ "Log out"
-    assert html =~ "Reaction threshold"
-    assert html =~ "No starred messages yet."
+    assert html =~ "New board"
+    assert html =~ "Memes"
   end
 
-  test "saving settings persists them through the config store", %{conn: conn} do
+  test "creates a board via the form", %{conn: conn} do
     {:ok, view, _html} = live(authed(conn), "/starboard")
 
     view
-    |> form("form", %{threshold: "5", channel_id: "12345"})
+    |> form("#starboard-form", %{
+      "name" => "Memes",
+      "target_channel_id" => "900",
+      "include_channel_ids" => "111, 222",
+      "exclude_channel_ids" => "",
+      "threshold" => "3",
+      "thread_threshold" => "4",
+      "position" => "0"
+    })
     |> render_submit()
 
-    assert {:ok, 5} == Store.get(@feature, "threshold", "global")
-    assert {:ok, "12345"} == Store.get(@feature, "channel_id", "global")
+    assert [board] = Starboards.for_guild("9")
+    assert board.name == "Memes"
+    assert board.guild_id == "9"
+    assert board.include_channel_ids == ["111", "222"]
+    assert board.threshold == 3
+    assert board.thread_threshold == 4
+    assert board.enabled == true
+
+    assert render(view) =~ "Memes"
   end
 
-  test "shows a direct link to a starred message's media", %{conn: conn} do
-    {:ok, _} =
-      StarredMessages.create(%{
-        message_id: "m1",
-        emoji: "⭐",
-        reaction_count: 4,
-        media_url: "https://cdn/cat.png",
-        media_type: "image"
-      })
+  test "editing a board updates it", %{conn: conn} do
+    board = create_board(%{name: "Old", target_channel_id: "900"})
 
-    {:ok, _view, html} = live(authed(conn), "/starboard")
-    assert html =~ "https://cdn/cat.png"
-    assert html =~ "View image"
+    {:ok, view, _html} = live(authed(conn), "/starboard")
+
+    view |> element("button[phx-value-id='#{board.id}']", "Edit") |> render_click()
+    view |> form("#starboard-form", %{"name" => "Renamed"}) |> render_submit()
+
+    assert Starboards.get(board.id).name == "Renamed"
+    assert render(view) =~ "Renamed"
   end
 
-  test "lists starred messages with pagination", %{conn: conn} do
-    for n <- 1..25 do
-      {:ok, _} =
-        StarredMessages.create(%{
-          message_id: "m#{n}",
-          emoji: "⭐",
-          reaction_count: n,
-          author: "u#{n}"
-        })
-    end
+  test "deleting a board removes it", %{conn: conn} do
+    board = create_board(%{name: "Doomed", target_channel_id: "900"})
 
     {:ok, view, html} = live(authed(conn), "/starboard")
-    assert html =~ "Page 1 of 2"
-    assert html =~ "u25"
+    assert html =~ "Doomed"
 
-    html = view |> element("button", "Next") |> render_click()
-    assert html =~ "Page 2 of 2"
-    # "u5" is unique to page 2's authors (u5..u1); page 1 holds u6..u25.
-    assert html =~ "u5"
+    view |> element("button[phx-value-id='#{board.id}']", "Delete") |> render_click()
+
+    assert Starboards.get(board.id) == nil
+    refute render(view) =~ "Doomed"
+  end
+
+  test "the starred table filters by board", %{conn: conn} do
+    alpha = create_board(%{name: "Alpha", target_channel_id: "900"})
+    beta = create_board(%{name: "Beta", target_channel_id: "901"})
+
+    {:ok, _} =
+      StarredMessages.create(%{
+        message_id: "ma",
+        emoji: "⭐",
+        author: "alice_a",
+        starboard_id: alpha.id
+      })
+
+    {:ok, _} =
+      StarredMessages.create(%{
+        message_id: "mb",
+        emoji: "⭐",
+        author: "bob_b",
+        starboard_id: beta.id
+      })
+
+    {:ok, view, html} = live(authed(conn), "/starboard")
+    assert html =~ "alice_a"
+    assert html =~ "bob_b"
+
+    filtered =
+      view
+      |> form("form[phx-change='filter_board']", %{"starboard_id" => to_string(alpha.id)})
+      |> render_change()
+
+    assert filtered =~ "alice_a"
+    refute filtered =~ "bob_b"
   end
 end

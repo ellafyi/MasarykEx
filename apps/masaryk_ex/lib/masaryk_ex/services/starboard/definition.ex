@@ -1,48 +1,68 @@
 defmodule MasarykEx.Services.Starboard.Definition do
   @moduledoc """
-  Reposts a message to a configured channel once a single emoji's reaction count
-  reaches the threshold, then keeps that count current as reactions are added or
-  removed. The post happens once (deduped by source message id); later changes
-  edit the existing starboard post rather than posting again. Reactions in the
-  starboard channel itself are ignored to avoid a feedback loop.
+  Routes a reacted message to exactly one user-defined starboard once a single
+  emoji's reaction count reaches that board's threshold, then keeps the count
+  current as reactions change. The board is chosen by the message's membership
+  channel (a thread inherits its parent's board and the thread/forum threshold);
+  most-specific wins. The post happens once per source message (deduped by
+  message id); later changes edit the existing post. Reactions in any board's
+  own target channel are ignored to avoid a feedback loop.
   """
 
   use MasarykEx.Core.Service
 
   alias MasarykEx.Adapters.Discord.Outbound
   alias MasarykEx.Core.Event
+  alias MasarykEx.Data.Starboard.Starboards
   alias MasarykEx.Data.Starboard.StarredMessages
+  alias MasarykEx.Services.Starboard.Routing
 
   require Logger
 
   @topic "starboard"
 
-  @impl true
-  def config_schema, do: %{threshold: 3, channel_id: nil}
+  # Thread (10/11/12) and forum (15) sources are matched by their parent channel
+  # and use the board's thread threshold; everything else routes by its own id.
+  @thread_types [10, 11, 12]
 
   @impl true
-  def handle_event(%Event{type: type} = event, config)
+  def config_schema, do: %{}
+
+  @impl true
+  def handle_event(%Event{type: type} = event, _config)
       when type in [:reaction_added, :reaction_removed] do
-    process(event, config)
+    process(event)
     :ok
   end
 
   def handle_event(_event, _config), do: :ok
 
-  defp process(%Event{data: data, context: context}, config) do
-    channel_id = blank_to_nil(config[:channel_id])
+  defp process(%Event{data: data, context: context}) do
+    boards =
+      context.guild_id
+      |> Starboards.for_guild()
+      |> Enum.filter(& &1.enabled)
 
     cond do
-      is_nil(channel_id) ->
+      boards == [] -> :ok
+      Routing.target_channel?(boards, data.channel_id) -> :ok
+      true -> route(data, context, boards)
+    end
+  end
+
+  defp route(data, context, boards) do
+    {thread?, membership_channel} = membership(data.channel_id)
+
+    case Routing.select(boards, membership_channel) do
+      nil ->
         :ok
 
-      data.channel_id == channel_id ->
-        :ok
+      board ->
+        threshold = if thread?, do: board.thread_threshold, else: board.threshold
 
-      true ->
         with {:ok, message} <- Outbound.get_message(data.channel_id, data.message_id) do
           count = Outbound.count_for_emoji(message, data.emoji_name)
-          reconcile(data, context, config, channel_id, message, count)
+          reconcile(data, context, board, threshold, message, count)
         else
           :error ->
             Logger.debug("[Starboard] could not fetch message #{data.message_id}")
@@ -51,22 +71,35 @@ defmodule MasarykEx.Services.Starboard.Definition do
     end
   end
 
-  defp reconcile(data, context, config, channel_id, message, count) do
+  # Membership channel: a thread/forum's parent (so a thread inherits its
+  # parent's board), otherwise the source channel itself. Falls back to the
+  # source channel as a normal channel when the channel can't be resolved.
+  defp membership(channel_id) do
+    case Outbound.channel_info(channel_id) do
+      {:ok, %{type: type, parent_id: parent_id}} when type in @thread_types ->
+        {true, parent_id || channel_id}
+
+      _ ->
+        {false, channel_id}
+    end
+  end
+
+  defp reconcile(data, context, board, threshold, message, count) do
     case StarredMessages.get_by_message(data.message_id) do
       nil ->
-        if count >= config[:threshold] do
-          post_new(data, context, channel_id, message, count)
+        if count >= threshold do
+          post_new(data, context, board, message, count)
         end
 
       %{emoji: emoji} = entry when emoji == data.emoji_name ->
-        update_existing(entry, channel_id, count)
+        update_existing(entry, board.target_channel_id, count)
 
       _other_emoji ->
         :ok
     end
   end
 
-  defp post_new(data, context, channel_id, message, count) do
+  defp post_new(data, context, board, message, count) do
     media = Outbound.media(message)
 
     attrs = %{
@@ -81,10 +114,12 @@ defmodule MasarykEx.Services.Starboard.Definition do
       media_type: media && Atom.to_string(media.type),
       emoji_id: Map.get(data, :emoji_id),
       emoji_animated: Map.get(data, :emoji_animated, false),
-      author_avatar_url: Outbound.author_avatar_url(message)
+      author_avatar_url: Outbound.author_avatar_url(message),
+      starboard_id: board.id
     }
 
-    with {:ok, posted} <- Outbound.create_message(channel_id, Outbound.starboard_embed(attrs)),
+    with {:ok, posted} <-
+           Outbound.create_message(board.target_channel_id, Outbound.starboard_embed(attrs)),
          {:ok, _entry} <-
            StarredMessages.create(Map.put(attrs, :starboard_message_id, id_string(posted))) do
       broadcast()
@@ -135,8 +170,4 @@ defmodule MasarykEx.Services.Starboard.Definition do
     Phoenix.PubSub.broadcast(MasarykEx.PubSub, @topic, {:starboard, :updated})
     :ok
   end
-
-  defp blank_to_nil(nil), do: nil
-  defp blank_to_nil(""), do: nil
-  defp blank_to_nil(value), do: value
 end

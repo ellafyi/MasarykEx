@@ -22,6 +22,23 @@ defmodule MasarykEx.Adapters.Discord.Outbound do
     end
   end
 
+  @doc """
+  Resolve a channel's type and parent. Returns `{:ok, %{type: integer,
+  parent_id: string | nil}}` or `:error`. Used to classify a reacted message's
+  source as a thread/forum and to resolve the parent channel that decides
+  starboard membership.
+  """
+  @spec channel_info(String.t()) ::
+          {:ok, %{type: integer(), parent_id: String.t() | nil}} | :error
+  def channel_info(channel_id) do
+    with {:ok, id} <- to_id(channel_id),
+         {:ok, channel} <- channel_fetcher().(id) do
+      {:ok, %{type: channel.type, parent_id: maybe_id_string(channel.parent_id)}}
+    else
+      _ -> :error
+    end
+  end
+
   @doc "Post a payload to a channel. Returns `{:ok, message}` or `:error`."
   @spec create_message(String.t(), map()) :: {:ok, map()} | :error
   def create_message(channel_id, payload) do
@@ -232,6 +249,9 @@ defmodule MasarykEx.Adapters.Discord.Outbound do
 
   defp to_id(_), do: :error
 
+  defp maybe_id_string(nil), do: nil
+  defp maybe_id_string(id), do: to_string(id)
+
   defp blank_to_nil(nil), do: nil
   defp blank_to_nil(""), do: nil
   defp blank_to_nil(value), do: value
@@ -250,5 +270,9 @@ defmodule MasarykEx.Adapters.Discord.Outbound do
 
   defp guild_emojis do
     Application.get_env(:masaryk_ex, :starboard_guild_emojis, &Nostrum.Api.Guild.emojis/1)
+  end
+
+  defp channel_fetcher do
+    Application.get_env(:masaryk_ex, :starboard_channel_fetcher, &Nostrum.Api.Channel.get/1)
   end
 end

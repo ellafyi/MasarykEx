@@ -29,23 +29,33 @@ defmodule MasarykEx.Data.Starboard.StarredMessages do
     |> Repo.update()
   end
 
-  @doc "Starred entries newest first, paged with `:limit` and `:offset`."
+  @doc """
+  Starred entries newest first, paged with `:limit` and `:offset`. Pass
+  `:starboard_id` to restrict to one board.
+  """
   @spec list(keyword()) :: [StarredMessage.t()]
   def list(opts \\ []) do
     limit = Keyword.get(opts, :limit, 20)
     offset = Keyword.get(opts, :offset, 0)
 
     Repo.all(
-      from s in StarredMessage,
+      from s in scope(opts),
         order_by: [desc: s.inserted_at, desc: s.id],
         limit: ^limit,
         offset: ^offset
     )
   end
 
-  @doc "Total number of starred entries."
-  @spec count() :: non_neg_integer()
-  def count do
-    Repo.aggregate(StarredMessage, :count, :id)
+  @doc "Total number of starred entries, optionally scoped by `:starboard_id`."
+  @spec count(keyword()) :: non_neg_integer()
+  def count(opts \\ []) do
+    Repo.aggregate(scope(opts), :count, :id)
+  end
+
+  defp scope(opts) do
+    case Keyword.get(opts, :starboard_id) do
+      nil -> StarredMessage
+      starboard_id -> from(s in StarredMessage, where: s.starboard_id == ^starboard_id)
+    end
   end
 end

@@ -29,11 +29,32 @@ defmodule MasarykEx.Adapters.Discord.OutboundTest do
 
   describe "starboard_embed/1 source field" do
     test "includes the channel mention next to the jump link" do
-      [field] = embed(%{}).fields
+      field = Enum.find(embed(%{}).fields, &(&1.name == "Source"))
       assert field.name == "Source"
 
       assert field.value ==
                "<#100> · [Jump to message](https://discord.com/channels/9/100/200)"
+    end
+  end
+
+  describe "starboard_embed/1 reactions field" do
+    test "renders a unicode reaction in a field value, with no footer" do
+      e = embed(%{emoji: "⭐", emoji_id: nil, reaction_count: 4})
+      field = Enum.find(e.fields, &(&1.name == "Reactions"))
+
+      assert field.value == "⭐ 4"
+      # Custom emoji render only in description/field values, never the footer.
+      refute Map.has_key?(e, :footer)
+    end
+
+    test "renders a this-guild custom emoji as <:name:id> in the field value" do
+      stub_emojis({:ok, [%{id: 123, name: "blob", animated: false}]})
+
+      e = embed(%{emoji: "blob", emoji_id: "123", emoji_animated: false, reaction_count: 7})
+      field = Enum.find(e.fields, &(&1.name == "Reactions"))
+
+      assert field.value == "<:blob:123> 7"
+      refute Map.has_key?(e, :footer)
     end
   end
 

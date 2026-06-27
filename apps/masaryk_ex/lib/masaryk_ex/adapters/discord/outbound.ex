@@ -140,12 +140,16 @@ defmodule MasarykEx.Adapters.Discord.Outbound do
         color: @gold,
         fields: [
           %{
+            name: "Reactions",
+            value: "#{render_emoji(attrs)} #{attrs[:reaction_count]}",
+            inline: true
+          },
+          %{
             name: "Source",
             value: "<##{attrs[:channel_id]}> · [Jump to message](#{jump_url(attrs)})",
             inline: true
           }
-        ],
-        footer: %{text: "#{render_emoji(attrs)} #{attrs[:reaction_count]}"}
+        ]
       }
       |> put_image(attrs)
       |> Map.reject(fn {_k, v} -> is_nil(v) end)

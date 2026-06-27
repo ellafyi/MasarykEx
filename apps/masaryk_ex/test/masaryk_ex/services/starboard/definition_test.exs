@@ -301,7 +301,7 @@ defmodule MasarykEx.Services.Starboard.DefinitionTest do
              icon_url: "https://cdn.discordapp.com/avatars/42/abc.png"
            }
 
-    assert embed.footer.text == "<:blob:123> 2"
+    assert reactions_field(embed) == "<:blob:123> 2"
 
     entry = StarredMessages.get_by_message("200")
     assert entry.emoji_id == "123"
@@ -312,6 +312,10 @@ defmodule MasarykEx.Services.Starboard.DefinitionTest do
     assert :ok = Definition.handle_event(reaction, %{})
 
     assert_received {:edited, 555, 999, %{embeds: [edited]}}
-    assert edited.footer.text == "<:blob:123> 5"
+    assert reactions_field(edited) == "<:blob:123> 5"
+  end
+
+  defp reactions_field(embed) do
+    Enum.find(embed.fields, &(&1.name == "Reactions")).value
   end
 end

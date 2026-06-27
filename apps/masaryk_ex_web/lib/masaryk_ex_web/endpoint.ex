@@ -15,8 +15,14 @@ defmodule MasarykExWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: false
 
-  # Liveness probe for the Kamal proxy; answered before session/router work.
   plug :health_check
+
+  # Liveness probe for the Kamal proxy; answered before session/router work.
+  if code_reloading? do
+    socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
+    plug Phoenix.LiveReloader
+    plug Phoenix.CodeReloader
+  end
 
   plug Plug.Static, at: "/assets/phoenix", from: {:phoenix, "priv/static"}
   plug Plug.Static, at: "/assets/lv", from: {:phoenix_live_view, "priv/static"}

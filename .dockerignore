@@ -1,13 +1,14 @@
-# Keep the Docker build context small and reproducible.
-_build
-deps
-.git
+_build/
+.git/
 .github
+.gitignore
 .elixir_ls
 .kamal
-doc
-tmp
-.env
+deps/
+priv/static/
+
+*.log
 *.tar
+*.gz
 *.ez
-erl_crash.dump
+.DS_Store

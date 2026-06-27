@@ -1,42 +1,54 @@
-# Full local dev environment. Start everything with: docker compose up -d --build
-# (Host port 5433 for Postgres, since 5432 is often already taken.)
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: masaryk-db
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: masaryk_ex_dev
-    ports:
-      - "5433:5432"
-    volumes:
-      - masaryk_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    db:
+        image: postgres:16-alpine
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: masaryk_dev
+        ports:
+            - "5432:5432"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
 
-  bot:
-    build: .
-    container_name: masaryk-bot
-    depends_on:
-      db:
-        condition: service_healthy
-    # BOT_TOKEN and DISCORD_GUILD_ID come from .env; without a token the bot
-    # starts headless (no Discord connection).
-    ports:
-      - "4000:4000"
-    env_file:
-      - path: .env
-        required: false
-    environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/masaryk_ex_dev
-      SECRET_KEY_BASE: "dev_secret_key_base_at_least_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    # Run migrations, then start the release in the foreground.
-    command: ["sh", "-c", "bin/masaryk_ex eval 'MasarykEx.Release.migrate()' && bin/masaryk_ex start"]
-    restart: unless-stopped
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile.dev
+        environment:
+            DATABASE_URL: ecto://postgres:postgres@db/masaryk_dev
+            MIX_ENV: dev
+            BOT_TOKEN: ${BOT_TOKEN}
+            DISCORD_GUILD_ID: ${DISCORD_GUILD_ID}
+            DISCORD_ENABLED: ${DISCORD_ENABLED:-true}
+            PHX_HOST: localhost
+            PHX_LIVE_RELOAD_ENABLED: "true"
+        ports:
+            - "4000:4000"
+            - "4369:4369" # EPMD
+            - "9001-9010:9001-9010" # Distribution ports
+        volumes:
+            - .:/app
+            - /app/_build
+            - /app/deps
+            - /app/apps/masaryk_ex/priv/static
+            - /app/apps/masaryk_ex_web/priv/static
+        depends_on:
+            db:
+                condition: service_healthy
+        command: >
+            sh -c "
+              mix deps.get &&
+              mix ecto.create &&
+              mix ecto.migrate &&
+              iex --name masaryk@app --cookie development_cookie -S mix phx.server # remote attach with `docker-compose exec app iex --sname masaryk2 --cookie development_cookie --remsh masaryk@app`
+            "
+        stdin_open: true
+        tty: true
 
 volumes:
-  masaryk_pgdata:
+    postgres_data:

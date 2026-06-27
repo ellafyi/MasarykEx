@@ -7,7 +7,8 @@ defmodule MasarykEx.Umbrella.MixProject do
       version: "0.1.0",
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      releases: releases()
+      releases: releases(),
+      listeners: [Phoenix.CodeReloader]
     ]
   end
 

@@ -1,0 +1,11 @@
+_build/
+deps/
+.git/
+.gitignore
+*.log
+*.tar
+*.gz
+node_modules/
+priv/static/
+.elixir_ls/
+.DS_Store

@@ -115,4 +115,4 @@ jobs:
 
             # Step: Execute the tests.
             - name: Run tests
-              run: PGPORT=5432 mix test
+              run: mix test

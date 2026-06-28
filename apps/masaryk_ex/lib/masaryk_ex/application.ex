@@ -13,9 +13,13 @@ defmodule MasarykEx.Application do
 
     children =
       [
-        {Phoenix.PubSub, name: MasarykEx.PubSub},
+        # Manages PostgreSQL
         MasarykEx.Repo,
+        # Pubsub for IPC
+        {Phoenix.PubSub, name: MasarykEx.PubSub},
+        # Manages configuration state
         MasarykEx.Config.Store,
+        # Handles simple statistics
         MasarykEx.Stats
       ] ++
         service_children() ++ discord_children()

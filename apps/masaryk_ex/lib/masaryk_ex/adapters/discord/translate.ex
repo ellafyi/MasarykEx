@@ -233,7 +233,8 @@ defmodule MasarykEx.Adapters.Discord.Translate do
       type: option_type(Map.get(arg, :type, :string)),
       name: arg.name,
       description: Map.get(arg, :description, arg.name),
-      required: Map.get(arg, :required, false)
+      required: Map.get(arg, :required, false),
+      choices: Map.get(arg, :choices, [])
     }
   end
 

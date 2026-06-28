@@ -17,7 +17,30 @@ defmodule MasarykEx.Commands.Config.Definition do
       name: "config",
       description: "View or change feature settings",
       args: [
-        %{name: "action", type: :string, required: true, description: "get | set | unset | list"},
+        %{
+          name: "action",
+          type: :string,
+          required: true,
+          description: "What to do",
+          choices: [
+            %{
+              name: "get",
+              value: "get"
+            },
+            %{
+              name: "set",
+              value: "set"
+            },
+            %{
+              name: "unset",
+              value: "unset"
+            },
+            %{
+              name: "list",
+              value: "list"
+            }
+          ]
+        },
         %{
           name: "feature",
           type: :string,

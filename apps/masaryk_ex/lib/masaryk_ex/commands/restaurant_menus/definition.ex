@@ -8,7 +8,23 @@ defmodule MasarykEx.Commands.RestaurantMenus.Definition do
 
   @impl true
   def definition do
-    %{name: "restaurant-menus", description: "List available restaurant menus", args: []}
+    %{
+      name: "restaurant-menus",
+      description: "List available restaurant menus",
+      args: [
+        %{
+          name: "venue",
+          type: :string,
+          required: false,
+          description: "Which venue to list menus for",
+          choices:
+            Restaurants.list()
+            |> Enum.map(fn r ->
+              %{name: r.name, value: r.name}
+            end)
+        }
+      ]
+    }
   end
 
   @impl true

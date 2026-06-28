@@ -10,6 +10,10 @@ defmodule MasarykEx.Config do
 
   Overrides (1 & 2) are persisted via `MasarykEx.Config.Store`. `enabled`
   defaults to `true` so every feature is on unless turned off.
+
+  TODO:
+  - Should have some way of finding all modules (maybe whitelisting modules?)
+  - WebUI for admins
   """
 
   alias MasarykEx.Core.Context
@@ -84,6 +88,8 @@ defmodule MasarykEx.Config do
 
   defp append_keys(acc, keys), do: acc ++ keys
 
+  # TODO Move to utils or smtg
+  # Also, `String.to_atom` can OOM the atom table, are we sure this is safe?
   defp safe_atom(str) do
     String.to_existing_atom(str)
   rescue

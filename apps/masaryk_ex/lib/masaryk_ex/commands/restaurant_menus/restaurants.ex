@@ -13,6 +13,7 @@ defmodule MasarykEx.Commands.RestaurantMenus.Restaurants do
       %RestaurantDescriptor.Menicka{id: 6695, name: "U Karla", icon: "🍗", color: 0xFFFFFF},
       %RestaurantDescriptor.Wolt{
         link: "https://wolt.com/en/cze/brno/restaurant/bistro-bastardo-stefanikova",
+        name: "Bistro Bastardo",
         icon: "🥙",
         categories: [~r/tydenni-menu/],
         color: 0xE8B84B

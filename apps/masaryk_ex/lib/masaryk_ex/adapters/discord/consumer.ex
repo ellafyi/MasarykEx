@@ -9,6 +9,7 @@ defmodule MasarykEx.Adapters.Discord.Consumer do
 
   alias Nostrum.Api.ApplicationCommand
   alias Nostrum.Api.Interaction
+  alias Nostrum.Struct.Event.Ready
 
   alias MasarykEx.Autoloader
   alias MasarykEx.Core.{Dispatcher, Router}
@@ -17,14 +18,16 @@ defmodule MasarykEx.Adapters.Discord.Consumer do
   require Logger
 
   @impl true
-  def handle_event({:READY, _payload, _ws_state}) do
-    case guild_id() do
-      nil ->
-        Logger.warning("DISCORD_GUILD_ID not set, skipping slash command registration.")
+  @spec handle_event({:READY, Ready.t(), any()}) :: :ok
+  def handle_event({:READY, payload, _ws_state}) do
+    Logger.debug("DISCORD_READY: #{inspect(payload)}")
 
-      guild_id ->
-        register_commands(guild_id)
-    end
+    Logger.info("Starting as discord user #{payload.user.username}")
+
+    payload.guilds
+    |> Enum.each(fn guild ->
+      register_commands(guild.id)
+    end)
 
     :ok
   end
@@ -51,7 +54,9 @@ defmodule MasarykEx.Adapters.Discord.Consumer do
   @impl true
   def handle_event(_event), do: :ok
 
-  defp register_commands(guild_id) do
+  def register_commands(guild_id) do
+    Logger.debug("Registering commands for guild #{guild_id}")
+
     defs =
       Autoloader.modules_with_function(MasarykEx.Commands, :definition, 0)
       |> Enum.map(&Translate.command_to_discord(&1.definition()))
@@ -64,6 +69,4 @@ defmodule MasarykEx.Adapters.Discord.Consumer do
         Logger.error("Failed to register commands: #{inspect(error)}")
     end
   end
-
-  defp guild_id, do: Application.get_env(:masaryk_ex, :discord_guild_id)
 end

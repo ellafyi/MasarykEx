@@ -7,6 +7,7 @@ defmodule MasarykEx.Core.Context do
 
   @type interface :: :discord | :cli | :web
 
+  # TODO REFACTOR Really user_id and guild_id and channel_id should be ints, not strings
   @type t :: %__MODULE__{
           interface: interface(),
           user_id: String.t() | nil,

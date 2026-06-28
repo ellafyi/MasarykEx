@@ -8,7 +8,7 @@ defmodule MasarykEx.Core.Event do
   alias MasarykEx.Core.Context
 
   @type t :: %__MODULE__{
-          type: atom(),
+          type: :message_created | :reaction_added | :interval5m | :interval1h | :interval1d,
           data: map(),
           context: Context.t()
         }

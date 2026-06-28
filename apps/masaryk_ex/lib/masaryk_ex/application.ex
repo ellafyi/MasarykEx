@@ -16,7 +16,8 @@ defmodule MasarykEx.Application do
         {Phoenix.PubSub, name: MasarykEx.PubSub},
         MasarykEx.Repo,
         MasarykEx.Config.Store,
-        MasarykEx.Stats
+        MasarykEx.Stats,
+        MasarykEx.Interval
       ] ++
         service_children() ++ discord_children()
 

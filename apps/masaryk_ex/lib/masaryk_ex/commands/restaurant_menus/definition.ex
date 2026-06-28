@@ -33,9 +33,12 @@ defmodule MasarykEx.Commands.RestaurantMenus.Definition do
   end
 
   @impl true
-  def run(%Request{}) do
+  def run(%Request{args: args}) do
     embeds =
       Restaurants.list()
+      |> Enum.filter(fn r ->
+        Map.get(args, "venue") == nil || Map.get(args, "venue") == r.name
+      end)
       |> Enum.map(fn r -> Task.async(fn -> fetch_one(r) end) end)
       |> Task.await_many(15_000)
       |> Enum.flat_map(fn

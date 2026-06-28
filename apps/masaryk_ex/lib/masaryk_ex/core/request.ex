@@ -8,7 +8,7 @@ defmodule MasarykEx.Core.Request do
 
   @type t :: %__MODULE__{
           command: String.t(),
-          args: %{optional(String.t()) => term()},
+          args: %{optional(Map.t()) => term()},
           context: Context.t()
         }
 

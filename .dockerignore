@@ -12,3 +12,4 @@ priv/static/
 *.gz
 *.ez
 .DS_Store
+

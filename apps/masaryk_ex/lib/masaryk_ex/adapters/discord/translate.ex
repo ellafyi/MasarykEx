@@ -60,13 +60,7 @@ defmodule MasarykEx.Adapters.Discord.Translate do
   def to_event(:MESSAGE_CREATE, msg) do
     %Event{
       type: :message_created,
-      data: %{
-        content: msg.content,
-        author_id: maybe_string(msg.author.id),
-        author_username: msg.author.username,
-        message_id: maybe_string(msg.id),
-        channel_id: maybe_string(msg.channel_id)
-      },
+      data: message_data(msg),
       context: %Context{
         interface: :discord,
         user_id: maybe_string(msg.author.id),
@@ -76,11 +70,66 @@ defmodule MasarykEx.Adapters.Discord.Translate do
     }
   end
 
+  # MESSAGE_UPDATE arrives as a {old_message, updated_message} tuple.
+  def to_event(:MESSAGE_UPDATE, {_old, msg}) do
+    %Event{
+      type: :message_updated,
+      data: %{
+        message_id: maybe_string(msg.id),
+        channel_id: maybe_string(msg.channel_id),
+        content: msg.content,
+        edited_at: msg.edited_timestamp
+      },
+      context: %Context{
+        interface: :discord,
+        guild_id: maybe_string(msg.guild_id),
+        channel_id: maybe_string(msg.channel_id)
+      }
+    }
+  end
+
+  def to_event(:MESSAGE_DELETE, deletion) do
+    %Event{
+      type: :message_deleted,
+      data: %{
+        message_id: maybe_string(deletion.id),
+        channel_id: maybe_string(deletion.channel_id)
+      },
+      context: %Context{
+        interface: :discord,
+        guild_id: maybe_string(Map.get(deletion, :guild_id)),
+        channel_id: maybe_string(deletion.channel_id)
+      }
+    }
+  end
+
   def to_event(:MESSAGE_REACTION_ADD, reaction) do
     %Event{
       type: :reaction_added,
       data: %{
         emoji_name: reaction.emoji.name,
+        emoji_id: maybe_string(reaction.emoji.id),
+        emoji_animated: reaction.emoji.animated == true,
+        message_id: maybe_string(reaction.message_id),
+        user_id: maybe_string(reaction.user_id),
+        channel_id: maybe_string(reaction.channel_id)
+      },
+      context: %Context{
+        interface: :discord,
+        user_id: maybe_string(reaction.user_id),
+        guild_id: maybe_string(reaction.guild_id),
+        channel_id: maybe_string(reaction.channel_id)
+      }
+    }
+  end
+
+  def to_event(:MESSAGE_REACTION_REMOVE, reaction) do
+    %Event{
+      type: :reaction_removed,
+      data: %{
+        emoji_name: reaction.emoji.name,
+        emoji_id: maybe_string(reaction.emoji.id),
+        emoji_animated: reaction.emoji.animated == true,
         message_id: maybe_string(reaction.message_id),
         user_id: maybe_string(reaction.user_id),
         channel_id: maybe_string(reaction.channel_id)
@@ -95,6 +144,36 @@ defmodule MasarykEx.Adapters.Discord.Translate do
   end
 
   def to_event(_type, _payload), do: nil
+
+  # Full archival view of a message, shared by live capture and history backfill.
+  defp message_data(msg) do
+    %{
+      content: msg.content,
+      author_id: maybe_string(msg.author.id),
+      author_username: msg.author.username,
+      message_id: maybe_string(msg.id),
+      channel_id: maybe_string(msg.channel_id),
+      posted_at: msg.timestamp,
+      edited_at: msg.edited_timestamp,
+      type: msg.type,
+      pinned: msg.pinned,
+      reply_to_message_id: referenced_id(msg),
+      attachment_urls: attachment_urls(msg)
+    }
+  end
+
+  defp referenced_id(%{referenced_message: %{id: id}}) when not is_nil(id), do: maybe_string(id)
+
+  defp referenced_id(%{message_reference: %{message_id: id}}) when not is_nil(id),
+    do: maybe_string(id)
+
+  defp referenced_id(_), do: nil
+
+  defp attachment_urls(%{attachments: attachments}) when is_list(attachments) do
+    Enum.map(attachments, & &1.url)
+  end
+
+  defp attachment_urls(_), do: []
 
   # MESSAGE context-menu command (type 3): pull the resolved target message.
   defp interaction_args(%{data: %{type: 3, target_id: target_id, resolved: resolved}}) do

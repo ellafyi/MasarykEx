@@ -17,7 +17,7 @@ defmodule MasarykExWeb.Components do
   end
 
   @doc "Top nav with page links and the signed-in user / log out."
-  attr :active, :atom, required: true, doc: ":stats or :controls"
+  attr :active, :atom, required: true, doc: ":stats, :controls, :starboard or :backup"
   attr :current_user, :map, required: true
 
   def nav(assigns) do
@@ -34,6 +34,18 @@ defmodule MasarykExWeb.Components do
           <span style="font-weight: bold;">Controls</span>
         <% else %>
           <a href="/controls" style="color: #5865F2; text-decoration: none;">Controls</a>
+        <% end %>
+        <span style="color: #ccc; margin: 0 8px;">·</span>
+        <%= if @active == :starboard do %>
+          <span style="font-weight: bold;">Starboard</span>
+        <% else %>
+          <a href="/starboard" style="color: #5865F2; text-decoration: none;">Starboard</a>
+        <% end %>
+        <span style="color: #ccc; margin: 0 8px;">·</span>
+        <%= if @active == :backup do %>
+          <span style="font-weight: bold;">Backup</span>
+        <% else %>
+          <a href="/backup" style="color: #5865F2; text-decoration: none;">Backup</a>
         <% end %>
       </div>
       <div style="color: #999;">

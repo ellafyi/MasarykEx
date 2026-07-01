@@ -3,6 +3,7 @@ defmodule MasarykExWeb.Live.StarboardLive do
 
   import MasarykExWeb.Components
 
+  require Logger
   alias MasarykEx.Starboard
 
   @per_page 20
@@ -18,28 +19,69 @@ defmodule MasarykExWeb.Live.StarboardLive do
     "enabled" => "true"
   }
 
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     if connected?(socket), do: Phoenix.PubSub.subscribe(MasarykEx.PubSub, Starboard.topic())
 
-    {:ok,
+    case params do
+      %{"guild_id" => guild_id} ->
+        # Got guild_id in URL, use it
+        {:ok,
+         socket
+         |> assign(
+           per_page: @per_page,
+           editing: nil,
+           form: @blank_form,
+           error: nil,
+           filter_starboard: nil,
+           guild_id: guild_id,
+           starboards: Starboard.list_starboards(guild_id)
+         )
+         |> load_page(1)}
+
+      %{} ->
+        # No guild_id, redirect to first guild
+        case MasarykEx.Discord.list_guilds() do
+          [first | _] ->
+            {:ok, push_navigate(socket, to: "/starboard/#{first.id}")}
+
+          [] ->
+            {:ok,
+             assign(socket,
+               guild_id: nil,
+               starboards: [],
+               entries: [],
+               page: 1,
+               total: 0,
+               total_pages: 1
+             )}
+        end
+    end
+  end
+
+  def handle_event("change_guild", %{"guild_id" => guild_id}, socket) do
+    {:noreply,
      socket
      |> assign(
-       per_page: @per_page,
+       guild_id: guild_id,
+       starboards: Starboard.list_starboards(guild_id),
        editing: nil,
        form: @blank_form,
        error: nil,
-       filter_starboard: nil,
-       starboards: Starboard.list_starboards()
+       filter_starboard: nil
      )
      |> load_page(1)}
   end
 
   def handle_event("create_starboard", params, socket) do
-    case Starboard.create_starboard(form_to_attrs(params)) do
+    case Starboard.create_starboard(socket.assigns.guild_id, form_to_attrs(params)) do
       {:ok, _board} ->
         {:noreply,
          socket
-         |> assign(starboards: Starboard.list_starboards(), form: @blank_form, error: nil)}
+         |> assign(
+           starboards: Starboard.list_starboards(socket.assigns.guild_id),
+           form: @blank_form,
+           error: nil
+         )}
 
       {:error, changeset} ->
         {:noreply, assign(socket, form: params, error: changeset_error(changeset))}
@@ -56,7 +98,7 @@ defmodule MasarykExWeb.Live.StarboardLive do
           {:ok, _board} ->
             {:noreply,
              assign(socket,
-               starboards: Starboard.list_starboards(),
+               starboards: Starboard.list_starboards(socket.assigns.guild_id),
                editing: nil,
                form: @blank_form,
                error: nil
@@ -90,7 +132,11 @@ defmodule MasarykExWeb.Live.StarboardLive do
 
     {:noreply,
      socket
-     |> assign(starboards: Starboard.list_starboards(), editing: nil, form: @blank_form)
+     |> assign(
+       starboards: Starboard.list_starboards(socket.assigns.guild_id),
+       editing: nil,
+       form: @blank_form
+     )
      |> load_page(socket.assigns.page)}
   end
 
@@ -105,8 +151,20 @@ defmodule MasarykExWeb.Live.StarboardLive do
   def handle_info({:starboard, _}, socket) do
     {:noreply,
      socket
-     |> assign(starboards: Starboard.list_starboards())
+     |> assign(starboards: Starboard.list_starboards(socket.assigns.guild_id))
      |> load_page(socket.assigns.page)}
+  end
+
+  defp get_guilds do
+    case State.get(:guilds) do
+      {:ok, guilds_map} ->
+        guilds_map
+        |> Enum.map(fn {id, info} -> Map.put(info, :id, id) end)
+        |> Enum.sort_by(& &1.name)
+
+      {:error, :not_found} ->
+        []
+    end
   end
 
   defp load_page(socket, page) do
@@ -214,7 +272,7 @@ defmodule MasarykExWeb.Live.StarboardLive do
   def render(assigns) do
     ~H"""
     <.page>
-      <.nav active={:starboard} current_user={@current_user} />
+      <.nav active={:starboard} current_user={@current_user} guild_id={@guild_id} guilds={@guilds} />
 
       <h1 style="font-size: 1.5rem; margin-bottom: 8px;">Starboard</h1>
       <p style="color: #666; margin-top: 0; margin-bottom: 24px;">

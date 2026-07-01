@@ -14,6 +14,7 @@ defmodule MasarykEx.Adapters.Discord.Consumer do
   alias MasarykEx.Autoloader
   alias MasarykEx.Core.{Dispatcher, Router}
   alias MasarykEx.Adapters.Discord.Translate
+  alias MasarykEx.State
 
   require Logger
 
@@ -54,7 +55,13 @@ defmodule MasarykEx.Adapters.Discord.Consumer do
   @impl true
   def handle_event(_event), do: :ok
 
-  def register_commands(guild_id) do
+  defp register_guild(guild_id) do
+    State.update(:guilds, &Map.put(&1, guild_id, %{}))
+    Logger.debug("Registered guild #{guild_id}")
+    :ok
+  end
+
+  defp register_commands(guild_id) do
     Logger.debug("Registering commands for guild #{guild_id}")
 
     defs =

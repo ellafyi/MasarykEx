@@ -41,9 +41,13 @@ if discord_enabled do
   config :nostrum,
     token: bot_token,
     gateway_intents: [
-      :direct_messages,
+      :guilds,
+      :guild_members,
       :guild_messages,
+      :guild_message_typing,
       :guild_message_reactions,
+      :direct_messages,
+      :direct_message_reactions,
       :message_content
     ]
 

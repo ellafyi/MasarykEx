@@ -30,10 +30,11 @@ defmodule MasarykExWeb.Router do
     pipe_through [:browser, :require_auth]
 
     live_session :authenticated, on_mount: {MasarykExWeb.Auth, :ensure_authorized} do
-      live "/stats", MasarykExWeb.Live.StatsLive
-      live "/controls", MasarykExWeb.Live.ControlsLive
-      live "/starboard", MasarykExWeb.Live.StarboardLive
-      live "/backup", MasarykExWeb.Live.BackupLive
+      live "/stats/", MasarykExWeb.Live.StatsLive
+      live "/controls/", MasarykExWeb.Live.ControlsLive
+      live "/starboard/", MasarykExWeb.Live.StarboardLive
+      live "/starboard/:guild_id", MasarykExWeb.Live.StarboardLive
+      live "/backup/", MasarykExWeb.Live.BackupLive
     end
 
     live_dashboard "/dashboard",

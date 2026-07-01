@@ -18,7 +18,7 @@ defmodule MasarykEx.Discord do
   @spec member_roles(integer()) :: {:ok, [integer()]} | :error
   def member_roles(user_id) when is_integer(user_id) do
     with guild_id when is_integer(guild_id) <- guild_id(),
-         {:ok, %{roles: roles}} <- fetcher().(guild_id, user_id) do
+         {:ok, %{roles: roles}} <- Nostrum.Api.Guild.member(guild_id, user_id) do
       {:ok, roles}
     else
       _ -> :error
@@ -37,6 +37,22 @@ defmodule MasarykEx.Discord do
     end
   end
 
+  @doc """
+  Gets all guilds the bot is in.
+  Returns a list of simplified guild maps.
+  """
+  @spec list_guilds() :: [list(Nostrum.Struct.Guild.user_guild())]
+  def list_guilds do
+    case Nostrum.Api.Self.guilds() do
+      {:ok, guilds} ->
+        guilds
+        |> Enum.sort_by(& &1.name)
+
+      {:error, _reason} ->
+        []
+    end
+  end
+
   def stats_authorized?(user_id) when is_integer(user_id) do
     with role_id when is_integer(role_id) <- stats_role_id(),
          {:ok, roles} <- member_roles(user_id) do
@@ -48,8 +64,4 @@ defmodule MasarykEx.Discord do
 
   defp guild_id, do: Application.get_env(:masaryk_ex, :discord_guild_id)
   defp stats_role_id, do: Application.get_env(:masaryk_ex, :stats_role_id)
-
-  defp fetcher do
-    Application.get_env(:masaryk_ex, :discord_member_fetcher, &Nostrum.Api.Guild.member/2)
-  end
 end

@@ -6,7 +6,6 @@ defmodule MasarykExWeb.AuthControllerTest do
   setup do
     on_exit(fn ->
       Application.delete_env(:masaryk_ex, :discord_oauth_fetcher)
-      Application.delete_env(:masaryk_ex, :discord_member_fetcher)
       Application.delete_env(:masaryk_ex, :stats_role_id)
       Application.delete_env(:masaryk_ex, :discord_guild_id)
       Application.delete_env(:masaryk_ex, OAuth)

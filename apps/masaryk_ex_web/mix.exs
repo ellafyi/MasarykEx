@@ -34,7 +34,8 @@ defmodule MasarykExWeb.MixProject do
       {:bandit, "~> 1.5"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
-      {:lazy_html, ">= 0.1.0", only: :test}
+      {:lazy_html, ">= 0.1.0", only: :test},
+      {:petal_components, "~> 4.0"}
     ]
   end
 end
